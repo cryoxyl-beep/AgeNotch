@@ -1,0 +1,16 @@
+## .NET & Visual Studio
+bin/
+obj/
+publish/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.dotCover
+
+## Logs & Temp
+*.log
+*.tmp
