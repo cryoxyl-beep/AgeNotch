@@ -35,6 +35,8 @@ public partial class NotchWindow : Window
 
     public bool IsAnimating => _isAnimating;
 
+    public FrameworkElement NotchContainerElement => NotchContainer;
+
     public double TransitionProgress
     {
         get => (double)GetValue(TransitionProgressProperty);
@@ -154,6 +156,10 @@ public partial class NotchWindow : Window
         {
             UpdateWindowBoundsAndPosition(isExpanded: _viewModel.IsExpanded, animated: true);
         }
+        else if (e.PropertyName == nameof(NotchViewModel.EffectiveExpandedHeight) && _viewModel.IsExpanded)
+        {
+            UpdateWindowBoundsAndPosition(isExpanded: true, animated: true);
+        }
     }
 
     /// <summary>
@@ -167,7 +173,7 @@ public partial class NotchWindow : Window
         double collapsedW = _viewModel.CollapsedWidth;
         double expandedW = _viewModel.ExpandedWidth;
         double collapsedH = _viewModel.CollapsedHeight;
-        double expandedH = _viewModel.ExpandedHeight;
+        double expandedH = _viewModel.EffectiveExpandedHeight;
         double flareCollapsed = _viewModel.FlareRadiusCollapsed;
         double flareExpanded = _viewModel.FlareRadiusExpanded;
         double cornerCollapsed = _viewModel.CornerRadiusCollapsed;
@@ -241,7 +247,7 @@ public partial class NotchWindow : Window
         var screenWidth = _displayManager.PrimaryScreenWidthDips;
 
         double targetWindowWidth = _viewModel.ExpandedWidth + 40;
-        double targetWindowHeight = _viewModel.ExpandedHeight + 40;
+        double targetWindowHeight = _viewModel.EffectiveExpandedHeight + 40;
         double compactWindowWidth = _viewModel.CollapsedWidth + 40;
         double compactWindowHeight = _viewModel.CollapsedHeight + 20;
 
@@ -269,6 +275,38 @@ public partial class NotchWindow : Window
         {
             // Immediately expand host window canvas so opening animation never clips
             SetWindowHostBounds(targetWindowWidth, targetWindowHeight);
+
+            if (TransitionProgress >= 0.95)
+            {
+                // Already expanded: smoothly animate the notch container height to the new target
+                double fromH = NotchContainer.Height;
+                double toH = _viewModel.EffectiveExpandedHeight;
+                if (Math.Abs(fromH - toH) > 1.0)
+                {
+                    var heightAnim = new DoubleAnimation
+                    {
+                        From = fromH,
+                        To = toH,
+                        Duration = TimeSpan.FromMilliseconds(200),
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    heightAnim.CurrentTimeInvalidated += (_, _) =>
+                    {
+                        double currentH = NotchContainer.Height;
+                        double currentW = _viewModel.ExpandedWidth;
+                        var geom = NotchGeometryBuilder.BuildGeometry(currentW, currentH, _viewModel.FlareRadiusExpanded, _viewModel.CornerRadiusExpanded);
+                        NotchBackgroundPath.Data = geom;
+                        NotchClippedContent.Clip = geom;
+                    };
+                    heightAnim.Completed += (_, _) =>
+                    {
+                        _isAnimating = false;
+                        ApplyTransitionProgress(1.0);
+                    };
+                    NotchContainer.BeginAnimation(HeightProperty, heightAnim);
+                    return;
+                }
+            }
 
             var expandAnim = new DoubleAnimation
             {

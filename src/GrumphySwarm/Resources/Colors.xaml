@@ -26,7 +26,7 @@
     <Color x:Key="EmeraldColor">#10B981</Color>
     <SolidColorBrush x:Key="EmeraldBrush" Color="{StaticResource EmeraldColor}" />
 
-    <Color x:Key="CalendarBlueColor">#3B82F6</Color>
+    <Color x:Key="CalendarBlueColor">#0A84FF</Color>
     <SolidColorBrush x:Key="CalendarBlueBrush" Color="{StaticResource CalendarBlueColor}" />
 
     <Color x:Key="PinActiveColor">#F59E0B</Color>

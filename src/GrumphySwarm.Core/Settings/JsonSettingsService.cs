@@ -67,6 +67,7 @@ public sealed class JsonSettingsService : ISettingsService
 
             if (loaded != null)
             {
+                loaded.ClampBounds();
                 lock (_syncRoot)
                 {
                     _currentSettings = loaded;
@@ -98,6 +99,7 @@ public sealed class JsonSettingsService : ISettingsService
 
             if (loaded != null)
             {
+                loaded.ClampBounds();
                 lock (_syncRoot)
                 {
                     _currentSettings = loaded;

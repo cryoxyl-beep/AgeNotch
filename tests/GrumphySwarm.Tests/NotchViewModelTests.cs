@@ -209,7 +209,7 @@ public class NotchViewModelTests
 
         vm.CancelSettingsCommand.Execute(null);
         Assert.Equal("Dashboard", vm.ActiveView);
-        Assert.Equal(250, vm.CollapsedWidth); // Restored from current
+        Assert.Equal(240, vm.CollapsedWidth); // Restored from current
     }
 
     [Fact]
@@ -224,8 +224,8 @@ public class NotchViewModelTests
         vm.SetPendingPositionCommand.Execute("Left");
 
         vm.ResetSettingsDefaultsCommand.Execute(null);
-        Assert.Equal(250, vm.PendingCollapsedWidth);
-        Assert.Equal(36, vm.PendingCollapsedHeight);
+        Assert.Equal(240, vm.PendingCollapsedWidth);
+        Assert.Equal(34, vm.PendingCollapsedHeight);
         Assert.Equal(NotchHorizontalPosition.Center, vm.PendingHorizontalPosition);
     }
 

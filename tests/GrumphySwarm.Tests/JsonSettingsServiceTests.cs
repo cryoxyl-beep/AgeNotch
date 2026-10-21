@@ -16,10 +16,10 @@ public class JsonSettingsServiceTests
             var settings = await service.LoadSettingsAsync();
 
             Assert.NotNull(settings);
-            Assert.Equal(250.0, settings.CollapsedWidth);
-            Assert.Equal(36.0, settings.CollapsedHeight);
-            Assert.Equal(680.0, settings.ExpandedWidth);
-            Assert.Equal(185.0, settings.ExpandedHeight);
+            Assert.Equal(240.0, settings.CollapsedWidth);
+            Assert.Equal(34.0, settings.CollapsedHeight);
+            Assert.Equal(660.0, settings.ExpandedWidth);
+            Assert.Equal(140.0, settings.ExpandedHeight);
             Assert.Equal(NotchHorizontalPosition.Center, settings.HorizontalPosition);
             Assert.Equal(0.0, settings.HorizontalOffset);
         }
@@ -74,8 +74,8 @@ public class JsonSettingsServiceTests
             var settings = await service.LoadSettingsAsync();
 
             Assert.NotNull(settings);
-            Assert.Equal(250.0, settings.CollapsedWidth);
-            Assert.Equal(185.0, settings.ExpandedHeight);
+            Assert.Equal(240.0, settings.CollapsedWidth);
+            Assert.Equal(140.0, settings.ExpandedHeight);
             Assert.Equal(NotchHorizontalPosition.Center, settings.HorizontalPosition);
         }
         finally

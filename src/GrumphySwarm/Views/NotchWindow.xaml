@@ -25,9 +25,9 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Resources/Colors.xaml" />
-                <ResourceDictionary Source="/Resources/Icons.xaml" />
-                <ResourceDictionary Source="/Resources/Styles.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/GrumphySwarm;component/Resources/Colors.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/GrumphySwarm;component/Resources/Icons.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/GrumphySwarm;component/Resources/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
             <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
@@ -51,8 +51,8 @@
         <Grid x:Name="NotchContainer"
               HorizontalAlignment="Center"
               VerticalAlignment="Top"
-              Width="250"
-              Height="36"
+              Width="240"
+              Height="34"
               RenderOptions.BitmapScalingMode="HighQuality"
               MouseEnter="OnNotchMouseEnter"
               MouseLeave="OnNotchMouseLeave">
@@ -245,14 +245,14 @@
                       IsHitTestVisible="False">
 
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="36" />
+                        <RowDefinition Height="28" />
                         <!-- Header Row -->
                         <RowDefinition Height="*" />
                         <!-- Main Content Row -->
                     </Grid.RowDefinitions>
 
                     <!-- TOP HEADER: Dynamic header adapting to ActiveView -->
-                    <Grid Grid.Row="0" Margin="16,4,16,0" VerticalAlignment="Center">
+                    <Grid Grid.Row="0" Margin="26,4,26,0" VerticalAlignment="Center">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -272,8 +272,8 @@
                                         ToolTip="Dashboard view"
                                         Margin="0,0,4,0">
                                     <StackPanel Orientation="Horizontal">
-                                        <Path Data="{StaticResource IconNookGeometry}"
-                                              Fill="{StaticResource TextPrimaryBrush}"
+                                        <Path Data="{StaticResource IconDeskLampGeometry}"
+                                              Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
                                               Width="11"
                                               Height="11"
                                               Stretch="Uniform"
@@ -283,21 +283,21 @@
                                     </StackPanel>
                                 </Button>
 
-                                <!-- Agents Tab (Clean unselected background) -->
+                                <!-- Tray Tab -->
                                 <Button Style="{StaticResource NotchTabButtonStyle}"
                                         Tag="{Binding ActiveTab, Converter={StaticResource TabActiveTag}, ConverterParameter='Agents'}"
                                         Command="{Binding SelectTabCommand}"
                                         CommandParameter="Agents"
                                         ToolTip="Agent fleet management">
                                     <StackPanel Orientation="Horizontal">
-                                        <Path Data="{StaticResource IconAgentsGeometry}"
-                                              Fill="{StaticResource TextSecondaryBrush}"
+                                        <Path Data="{StaticResource IconTrayGeometry}"
+                                              Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
                                               Width="11"
                                               Height="11"
                                               Stretch="Uniform"
                                               Margin="0,0,5,0"
                                               VerticalAlignment="Center" />
-                                        <TextBlock Text="Agents" VerticalAlignment="Center" />
+                                        <TextBlock Text="Tray" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -336,11 +336,25 @@
                             </Button>
                         </StackPanel>
 
-                        <!-- Center Slot: Contextual Title or Indicator -->
-                        <StackPanel Grid.Column="1"
-                                    Orientation="Horizontal"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center">
+                        <!-- Center Slot: Contextual Title or Camera Lens Indicator -->
+                        <Grid Grid.Column="1"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center">
+                            <!-- Camera Lens with Dual Optical Reflection Aperture (Matching Reference) -->
+                            <Grid HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Visibility="{Binding ActiveView, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Dashboard'}">
+                                <Ellipse Width="8.5"
+                                         Height="8.5"
+                                         Fill="#0B0B10"
+                                         Stroke="#181822"
+                                         StrokeThickness="0.8" />
+                                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Ellipse Width="2.5" Height="2" Fill="#0A84FF" Opacity="0.9" Margin="0,0,0,1" />
+                                    <Ellipse Width="2.5" Height="2" Fill="#00D2FF" Opacity="0.85" />
+                                </StackPanel>
+                            </Grid>
+
                             <!-- Now Playing Source App Title in Control Center -->
                             <TextBlock Text="{Binding MediaSourceAppName}"
                                        Foreground="{StaticResource TextSecondaryBrush}"
@@ -354,32 +368,10 @@
                                        FontSize="11"
                                        FontWeight="SemiBold"
                                        Visibility="{Binding ActiveView, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Settings'}" />
-                        </StackPanel>
+                        </Grid>
 
-                        <!-- Right Slot: Action Buttons (Pin, Settings Gear) - Chevron removed completely -->
+                        <!-- Right Slot: Action Buttons (Settings Gear only in main header) -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <!-- Pin Button -->
-                            <Button Style="{StaticResource NotchIconButtonStyle}"
-                                    Command="{Binding TogglePinCommand}"
-                                    ToolTip="Pin notch open"
-                                    Margin="0,0,4,0">
-                                <Path Data="{StaticResource IconPinGeometry}"
-                                      Width="12"
-                                      Height="12"
-                                      Stretch="Uniform">
-                                    <Path.Style>
-                                        <Style TargetType="Path">
-                                            <Setter Property="Fill" Value="{StaticResource TextSecondaryBrush}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsPinned}" Value="True">
-                                                    <Setter Property="Fill" Value="{StaticResource PinActiveBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Path.Style>
-                                </Path>
-                            </Button>
-
                             <!-- Settings Button -->
                             <Button Style="{StaticResource NotchIconButtonStyle}"
                                     Command="{Binding OpenSettingsCommand}"
@@ -394,319 +386,337 @@
                     </Grid>
 
                     <!-- MAIN BODY: Multi-view container (Dashboard, NowPlayingCenter, Settings) -->
-                    <Grid Grid.Row="1" Margin="14,4,14,8">
+                    <Grid Grid.Row="1" Margin="26,2,26,8">
 
                         <!-- ============================================================== -->
                         <!-- [VIEW 1] DASHBOARD VIEW: NOOK & AGENTS                         -->
                         <!-- ============================================================== -->
                         <Grid Visibility="{Binding ActiveView, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Dashboard'}">
 
-                            <!-- [1A] NOOK TAB: 3 Balanced Cards (Now Playing, Calendar, Avatar) -->
-                            <Grid Visibility="{Binding ActiveTab, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Nook'}">
+                            <!-- [1A] NOOK TAB: Unified 1:1 Dynamic Island Composition (Direct on Pure Black) -->
+                            <Grid Visibility="{Binding ActiveTab, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Nook'}"
+                                  UseLayoutRounding="True"
+                                  SnapsToDevicePixels="True"
+                                  VerticalAlignment="Center">
                                 <Grid.ColumnDefinitions>
-                                    <!-- Column 1: Now Playing Card (Left) -->
-                                    <ColumnDefinition Width="2.3*" />
-                                    <ColumnDefinition Width="10" />
-                                    <!-- Column 2: Calendar Card (Center) -->
-                                    <ColumnDefinition Width="2.2*" />
-                                    <ColumnDefinition Width="10" />
-                                    <!-- Column 3: Profile / Avatar Card (Right) -->
-                                    <ColumnDefinition Width="1.0*" />
+                                    <!-- Column 0: Left Media Section (Proportional ~39%) -->
+                                    <ColumnDefinition Width="246" />
+                                    <!-- Column 1: Faint Hairline Divider -->
+                                    <ColumnDefinition Width="Auto" />
+                                    <!-- Column 2: Center Calendar Section (Proportional ~44%) -->
+                                    <ColumnDefinition Width="*" />
+                                    <!-- Column 3: Faint Hairline Divider -->
+                                    <ColumnDefinition Width="Auto" />
+                                    <!-- Column 4: Right Avatar Section (Proportional ~17%) -->
+                                    <ColumnDefinition Width="100" />
                                 </Grid.ColumnDefinitions>
 
-                                <!-- CARD 1: Now Playing Card (Clickable to open Control Center) -->
-                                <Border Grid.Column="0"
-                                        Background="{StaticResource NotchCardBackgroundDarkBrush}"
-                                        BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="12"
-                                        Padding="10"
-                                        Cursor="Hand">
-                                    <Border.InputBindings>
+                                <!-- SECTION 1: Media Section (Direct on Black, Clickable to open Control Center) -->
+                                <Grid Grid.Column="0"
+                                      Cursor="Hand"
+                                      Background="Transparent"
+                                      ToolTip="Click to open Now Playing Control Center"
+                                      VerticalAlignment="Center">
+                                    <Grid.InputBindings>
                                         <MouseBinding MouseAction="LeftClick" Command="{Binding OpenNowPlayingCenterCommand}" />
-                                    </Border.InputBindings>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
+                                    </Grid.InputBindings>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
 
-                                        <!-- Album Artwork with App Source Badge -->
-                                        <Grid Grid.Column="0" Margin="0,0,10,0">
-                                            <Border Width="54"
-                                                    Height="54"
-                                                    CornerRadius="8"
-                                                    ClipToBounds="True"
-                                                    Background="#181820">
-                                                <Grid>
-                                                    <Image Source="{Binding MediaThumbnailSource}"
-                                                           Stretch="UniformToFill"
-                                                           HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center" />
+                                    <!-- Album Artwork with Source App Badge -->
+                                    <Grid Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <Border Width="64"
+                                                Height="64"
+                                                CornerRadius="10"
+                                                ClipToBounds="True"
+                                                Background="#141418">
+                                            <Grid>
+                                                <!-- Default Album Art from Reference Spec -->
+                                                <Image Source="pack://application:,,,/GrumphySwarm;component/Resources/album_default.png"
+                                                       Stretch="UniformToFill"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center" />
 
-                                                    <!-- Fallback Music Note -->
-                                                    <Border Background="#1C1C24"
-                                                            Visibility="{Binding MediaThumbnailSource, Converter={StaticResource InverseNullToVisibility}, FallbackValue=Visible}">
-                                                        <Path Data="{StaticResource IconMusicNoteGeometry}"
-                                                              Fill="{StaticResource TextMutedBrush}"
-                                                              Width="18"
-                                                              Height="18"
-                                                              Stretch="Uniform"
-                                                              HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center" />
-                                                    </Border>
-                                                </Grid>
-                                            </Border>
+                                                <!-- Live GSMTC Artwork if playing -->
+                                                <Image Source="{Binding MediaThumbnailSource}"
+                                                       Stretch="UniformToFill"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Visibility="{Binding MediaThumbnailSource, Converter={StaticResource NullToVisibility}}" />
+                                            </Grid>
+                                        </Border>
 
-                                            <!-- Source App Badge Icon (Bottom Right of Artwork) -->
-                                            <Border HorizontalAlignment="Right"
-                                                    VerticalAlignment="Bottom"
-                                                    Width="18"
-                                                    Height="18"
-                                                    CornerRadius="5"
-                                                    Background="#EF4444"
-                                                    Margin="0,0,-4,-4"
-                                                    SnapsToDevicePixels="True">
-                                                <Border.Style>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="#EF4444" />
+                                        <!-- Source App Badge Icon (Bottom Right of Artwork) -->
+                                        <Border HorizontalAlignment="Right"
+                                                VerticalAlignment="Bottom"
+                                                Width="19"
+                                                Height="19"
+                                                CornerRadius="5"
+                                                Margin="0,0,-2,-2"
+                                                BorderBrush="#000000"
+                                                BorderThickness="1.5"
+                                                SnapsToDevicePixels="True">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#FA2D48" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconSpotifyBadge">
+                                                            <Setter Property="Background" Value="#1DB954" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconBrowserBadge">
+                                                            <Setter Property="Background" Value="#2563EB" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconGenericMusicBadge">
+                                                            <Setter Property="Background" Value="#6366F1" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Path Width="10"
+                                                  Height="10"
+                                                  Stretch="Uniform"
+                                                  Fill="White"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center">
+                                                <Path.Style>
+                                                    <Style TargetType="Path">
+                                                        <Setter Property="Data" Value="{StaticResource IconAppleMusicBadge}" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconSpotifyBadge">
-                                                                <Setter Property="Background" Value="#1DB954" />
+                                                                <Setter Property="Data" Value="{StaticResource IconSpotifyBadge}" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconBrowserBadge">
-                                                                <Setter Property="Background" Value="#2563EB" />
+                                                                <Setter Property="Data" Value="{StaticResource IconBrowserBadge}" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconGenericMusicBadge">
-                                                                <Setter Property="Background" Value="#6366F1" />
+                                                                <Setter Property="Data" Value="{StaticResource IconMusicNoteGeometry}" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
-                                                </Border.Style>
-                                                <Path Width="9"
+                                                </Path.Style>
+                                            </Path>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Track Metadata & Mini Controls beside artwork -->
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <!-- Line 1: Track Title -->
+                                        <TextBlock Text="{Binding MusicTrackTitle, FallbackValue='Dibi Dibi Rek'}"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontSize="12.5"
+                                                   FontWeight="SemiBold"
+                                                   FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   MaxHeight="17" />
+
+                                        <!-- Line 2: Album / Subtitle -->
+                                        <TextBlock Text="{Binding MusicAlbum, FallbackValue='Best Of'}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="10"
+                                                   Margin="0,1,0,0"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   MaxHeight="14" />
+
+                                        <!-- Line 3: Artist Name -->
+                                        <TextBlock Text="{Binding MusicArtist, FallbackValue='Ismaël Lô'}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="10"
+                                                   Margin="0,1,0,0"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   MaxHeight="14" />
+
+                                        <!-- Line 4: Horizontal Transport Controls underneath text -->
+                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                            <!-- Prev Button -->
+                                            <Button Style="{StaticResource NotchMiniTransportButtonStyle}"
+                                                    Command="{Binding MediaSkipPreviousCommand}"
+                                                    IsEnabled="{Binding CanSkipPrevious}"
+                                                    ToolTip="Previous Track"
+                                                    Margin="0,0,6,0">
+                                                <Path Data="{StaticResource IconPrevGeometry}"
+                                                      Fill="#D4D4D8"
+                                                      Width="9"
                                                       Height="9"
+                                                      Stretch="Uniform" />
+                                            </Button>
+
+                                            <!-- Play/Pause Button -->
+                                            <Button Style="{StaticResource NotchMiniTransportButtonStyle}"
+                                                    Command="{Binding ToggleMediaPlayPauseCommand}"
+                                                    IsEnabled="{Binding CanPlayPause}"
+                                                    ToolTip="Play / Pause"
+                                                    Margin="0,0,6,0">
+                                                <Path Width="10"
+                                                      Height="10"
                                                       Stretch="Uniform"
-                                                      Fill="White"
-                                                      HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center">
+                                                      Fill="#FFFFFF">
                                                     <Path.Style>
                                                         <Style TargetType="Path">
-                                                            <Setter Property="Data" Value="{StaticResource IconAppleMusicBadge}" />
+                                                            <Setter Property="Data" Value="{StaticResource IconPlayGeometry}" />
                                                             <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconSpotifyBadge">
-                                                                    <Setter Property="Data" Value="{StaticResource IconSpotifyBadge}" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconBrowserBadge">
-                                                                    <Setter Property="Data" Value="{StaticResource IconBrowserBadge}" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconGenericMusicBadge">
-                                                                    <Setter Property="Data" Value="{StaticResource IconMusicNoteGeometry}" />
+                                                                <DataTrigger Binding="{Binding MediaIsPlaying}" Value="True">
+                                                                    <Setter Property="Data" Value="{StaticResource IconPauseGeometry}" />
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
                                                     </Path.Style>
                                                 </Path>
-                                            </Border>
-                                        </Grid>
+                                            </Button>
 
-                                        <!-- Track Metadata & Mini Controls -->
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding MusicTrackTitle}"
-                                                       Foreground="{StaticResource TextPrimaryBrush}"
-                                                       FontSize="12"
-                                                       FontWeight="SemiBold"
-                                                       FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
-                                                       TextTrimming="CharacterEllipsis" />
-
-                                            <TextBlock Text="{Binding MusicArtist}"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                                       FontSize="10"
-                                                       Margin="0,1,0,0"
-                                                       TextTrimming="CharacterEllipsis" />
-
-                                            <!-- Controls Row -->
-                                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                                <Button Style="{StaticResource NotchIconButtonStyle}"
-                                                        Command="{Binding MediaSkipPreviousCommand}"
-                                                        IsEnabled="{Binding CanSkipPrevious}"
-                                                        Padding="3"
-                                                        Margin="0,0,4,0"
-                                                        ToolTip="Previous track">
-                                                    <Path Data="{StaticResource IconPrevGeometry}"
-                                                          Fill="{StaticResource TextSecondaryBrush}"
-                                                          Width="9"
-                                                          Height="9"
-                                                          Stretch="Uniform" />
-                                                </Button>
-
-                                                <Button Style="{StaticResource NotchIconButtonStyle}"
-                                                        Command="{Binding ToggleMediaPlayPauseCommand}"
-                                                        IsEnabled="{Binding CanPlayPause}"
-                                                        Padding="3"
-                                                        Margin="0,0,4,0"
-                                                        ToolTip="Play / Pause">
-                                                    <Path Width="10"
-                                                          Height="10"
-                                                          Stretch="Uniform"
-                                                          Fill="{StaticResource TextPrimaryBrush}">
-                                                        <Path.Style>
-                                                            <Style TargetType="Path">
-                                                                <Setter Property="Data" Value="{StaticResource IconPlayGeometry}" />
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding MediaIsPlaying}" Value="True">
-                                                                        <Setter Property="Data" Value="{StaticResource IconPauseGeometry}" />
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Path.Style>
-                                                    </Path>
-                                                </Button>
-
-                                                <Button Style="{StaticResource NotchIconButtonStyle}"
-                                                        Command="{Binding MediaSkipNextCommand}"
-                                                        IsEnabled="{Binding CanSkipNext}"
-                                                        Padding="3"
-                                                        ToolTip="Next track">
-                                                    <Path Data="{StaticResource IconNextGeometry}"
-                                                          Fill="{StaticResource TextSecondaryBrush}"
-                                                          Width="9"
-                                                          Height="9"
-                                                          Stretch="Uniform" />
-                                                </Button>
-                                            </StackPanel>
+                                            <!-- Next Button -->
+                                            <Button Style="{StaticResource NotchMiniTransportButtonStyle}"
+                                                    Command="{Binding MediaSkipNextCommand}"
+                                                    IsEnabled="{Binding CanSkipNext}"
+                                                    ToolTip="Next Track">
+                                                <Path Data="{StaticResource IconNextGeometry}"
+                                                      Fill="#D4D4D8"
+                                                      Width="9"
+                                                      Height="9"
+                                                      Stretch="Uniform" />
+                                            </Button>
                                         </StackPanel>
-                                    </Grid>
-                                </Border>
+                                    </StackPanel>
+                                </Grid>
 
-                                <!-- CARD 2: Calendar Card (Horizontal strip + active today pill) -->
-                                <Border Grid.Column="2"
-                                        Background="{StaticResource NotchCardBackgroundDarkBrush}"
-                                        BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="12"
-                                        Padding="10,8">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="*" />
-                                        </Grid.RowDefinitions>
+                                <!-- Faint Hairline Divider 1 -->
+                                <Rectangle Grid.Column="1"
+                                           Width="1"
+                                           Height="56"
+                                           Fill="#262630"
+                                           Margin="0,0"
+                                           SnapsToDevicePixels="True"
+                                           RenderOptions.EdgeMode="Aliased"
+                                           VerticalAlignment="Center" />
 
-                                        <!-- Month & Horizontal 7-Day Strip -->
-                                        <Grid Grid.Row="0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
+                                <!-- SECTION 2: Center Calendar Section (Direct on Black) -->
+                                <Grid Grid.Column="2"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Margin="12,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
 
-                                            <!-- Live Month Label -->
-                                            <TextBlock Grid.Column="0"
-                                                       Text="{Binding CurrentDateMonthText, FallbackValue='Oct'}"
-                                                       Foreground="{StaticResource TextPrimaryBrush}"
-                                                       FontSize="14"
-                                                       FontWeight="Bold"
-                                                       FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
-                                                       VerticalAlignment="Center"
-                                                       Margin="0,0,8,0" />
+                                    <!-- Row 0: Month & Horizontal 7-Day Strip -->
+                                    <Grid Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
 
-                                            <!-- 7-Day Strip -->
-                                            <UniformGrid Grid.Column="1" Columns="7" HorizontalAlignment="Stretch">
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="S" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="18" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
-                                                </StackPanel>
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="M" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="19" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
-                                                </StackPanel>
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="T" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="20" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
-                                                </StackPanel>
-                                                <!-- Today Highlight Capsule -->
-                                                <Border Background="{StaticResource CalendarBlueBrush}"
-                                                        CornerRadius="6"
-                                                        Padding="3,1"
-                                                        HorizontalAlignment="Center">
-                                                    <StackPanel>
-                                                        <TextBlock Text="{Binding CurrentDateWeekdayText, FallbackValue='WED'}"
-                                                                   FontSize="7"
-                                                                   FontWeight="Bold"
-                                                                   Foreground="White"
-                                                                   HorizontalAlignment="Center" />
-                                                        <TextBlock Text="{Binding CurrentDateDayText, FallbackValue='21'}"
-                                                                   FontSize="10"
-                                                                   FontWeight="Bold"
-                                                                   Foreground="White"
-                                                                   HorizontalAlignment="Center" />
+                                        <!-- Live Month Label -->
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding CurrentDateMonthText, FallbackValue='Aug'}"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontSize="19"
+                                                   FontWeight="Bold"
+                                                   FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,12,0" />
+
+                                        <!-- 7-Day Strip with Blue Text Highlight (No box) -->
+                                        <ItemsControl Grid.Column="1"
+                                                      ItemsSource="{Binding CalendarDays}"
+                                                      VerticalAlignment="Center"
+                                                      Width="180">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Columns="7" HorizontalAlignment="Stretch" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding WeekdayLabel}"
+                                                                   FontSize="8"
+                                                                   FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
+                                                                   HorizontalAlignment="Center">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                                                                    <Setter Property="FontWeight" Value="Normal" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <TextBlock Text="{Binding DayNumber}"
+                                                                   FontSize="11.5"
+                                                                   FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
+                                                                   HorizontalAlignment="Center"
+                                                                   Margin="0,2,0,0">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                                                    <Setter Property="FontWeight" Value="Normal" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                                            <Setter Property="Foreground" Value="{StaticResource CalendarBlueBrush}" />
+                                                                            <Setter Property="FontWeight" Value="Bold" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
                                                     </StackPanel>
-                                                </Border>
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="T" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="22" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
-                                                </StackPanel>
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="F" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="23" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
-                                                </StackPanel>
-                                                <StackPanel HorizontalAlignment="Center">
-                                                    <TextBlock Text="S" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
-                                                    <TextBlock Text="24" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
-                                                </StackPanel>
-                                            </UniformGrid>
-                                        </Grid>
-
-                                        <!-- Calendar Event Subtitle -->
-                                        <StackPanel Grid.Row="1"
-                                                    Orientation="Horizontal"
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    Margin="0,8,0,0">
-                                            <Path Data="{StaticResource IconCalendarGeometry}"
-                                                  Fill="{StaticResource TextMutedBrush}"
-                                                  Width="9"
-                                                  Height="9"
-                                                  Stretch="Uniform"
-                                                  Margin="0,0,5,0"
-                                                  VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding CalendarEventTitle, FallbackValue='Nothing for today'}"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                                       FontSize="10"
-                                                       VerticalAlignment="Center" />
-                                        </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
                                     </Grid>
-                                </Border>
 
-                                <!-- CARD 3: Profile / Avatar Card -->
-                                <Border Grid.Column="4"
-                                        Background="{StaticResource NotchCardBackgroundDarkBrush}"
-                                        BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="12"
-                                        Padding="6"
-                                        HorizontalAlignment="Stretch"
-                                        VerticalAlignment="Stretch">
-                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <Ellipse Width="52"
-                                                 Height="52"
-                                                 Stroke="{StaticResource NotchBorderDarkBrush}"
-                                                 StrokeThickness="1.5" />
-                                        <Ellipse Width="46" Height="46">
-                                            <Ellipse.Fill>
-                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                    <GradientStop Color="#334155" Offset="0" />
-                                                    <GradientStop Color="#0F172A" Offset="1" />
-                                                </LinearGradientBrush>
-                                            </Ellipse.Fill>
-                                        </Ellipse>
-                                        <Path Data="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                                              Fill="{StaticResource TextSecondaryBrush}"
-                                              Width="20"
-                                              Height="20"
+                                    <!-- Row 1: Calendar Empty-State Icon & Subtitle (Vertically Stacked) -->
+                                    <StackPanel Grid.Row="1"
+                                                Orientation="Vertical"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Margin="0,5,0,0">
+                                        <Path Data="{StaticResource IconCalendarCheckGeometry}"
+                                              Fill="{StaticResource TextMutedBrush}"
+                                              Width="12"
+                                              Height="11"
                                               Stretch="Uniform"
-                                              HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" />
-                                    </Grid>
-                                </Border>
+                                              HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding CalendarEventTitle, FallbackValue='Nothing for today'}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="9.5"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Faint Hairline Divider 2 -->
+                                <Rectangle Grid.Column="3"
+                                           Width="1"
+                                           Height="56"
+                                           Fill="#262630"
+                                           Margin="0,0"
+                                           SnapsToDevicePixels="True"
+                                           RenderOptions.EdgeMode="Aliased"
+                                           VerticalAlignment="Center" />
+
+                                <!-- SECTION 3: Right Avatar Section (Direct on Black) -->
+                                <Grid Grid.Column="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Width="64"
+                                            Height="64"
+                                            CornerRadius="32"
+                                            ClipToBounds="True"
+                                            Background="#141418">
+                                        <Grid>
+                                            <!-- Default Avatar Image from Reference Spec -->
+                                            <Image Source="pack://application:,,,/GrumphySwarm;component/Resources/avatar_default.png"
+                                                   Stretch="UniformToFill"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
                             </Grid>
 
                             <!-- [1B] AGENTS TAB: Fleet Profile Workspace -->

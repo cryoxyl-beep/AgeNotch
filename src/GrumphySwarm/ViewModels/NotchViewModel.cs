@@ -74,18 +74,54 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _calendarEventTitle = "Nothing for today";
 
+    [ObservableProperty]
+    private ObservableCollection<CalendarDayItem> _calendarDays = new();
+
     // --- Silhouette & Dimensions ---
     [ObservableProperty]
-    private double _collapsedWidth = 250.0;
+    private double _collapsedWidth = 240.0;
 
     [ObservableProperty]
-    private double _collapsedHeight = 36.0;
+    private double _collapsedHeight = 34.0;
 
     [ObservableProperty]
-    private double _expandedWidth = 680.0;
+    private double _expandedWidth = 660.0;
 
     [ObservableProperty]
-    private double _expandedHeight = 185.0;
+    private double _expandedHeight = 140.0;
+
+    /// <summary>
+    /// Gets the context-aware expanded height: shallow Dynamic Island for Nook dashboard,
+    /// or comfortably expanded for rich control center / settings panels.
+    /// </summary>
+    public double EffectiveExpandedHeight
+    {
+        get
+        {
+            if (ActiveView == "NowPlayingCenter")
+                return Math.Max(ExpandedHeight, 185.0);
+            if (ActiveView == "Settings")
+                return Math.Max(ExpandedHeight, 195.0);
+            if (ActiveTab == "Agents")
+                return Math.Max(ExpandedHeight, 180.0);
+            return ExpandedHeight;
+        }
+    }
+
+    partial void OnActiveViewChanged(string value)
+    {
+        OnPropertyChanged(nameof(EffectiveExpandedHeight));
+    }
+
+    partial void OnActiveTabChanged(string value)
+    {
+        OnPropertyChanged(nameof(EffectiveExpandedHeight));
+    }
+
+    partial void OnExpandedHeightChanged(double value)
+    {
+        OnPropertyChanged(nameof(EffectiveExpandedHeight));
+    }
 
     [ObservableProperty]
     private NotchHorizontalPosition _horizontalPosition = NotchHorizontalPosition.Center;
@@ -97,20 +133,20 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
     private double _cornerRadiusCollapsed = 16.0;
 
     [ObservableProperty]
-    private double _cornerRadiusExpanded = 24.0;
+    private double _cornerRadiusExpanded = 30.0;
 
     [ObservableProperty]
     private double _flareRadiusCollapsed = 10.0;
 
     [ObservableProperty]
-    private double _flareRadiusExpanded = 12.0;
+    private double _flareRadiusExpanded = 26.0;
 
     // --- Settings / Live Preview Properties ---
     [ObservableProperty]
-    private double _pendingCollapsedWidth = 250.0;
+    private double _pendingCollapsedWidth = 240.0;
 
     [ObservableProperty]
-    private double _pendingCollapsedHeight = 36.0;
+    private double _pendingCollapsedHeight = 34.0;
 
     [ObservableProperty]
     private NotchHorizontalPosition _pendingHorizontalPosition = NotchHorizontalPosition.Center;
@@ -183,31 +219,31 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
     private bool _hasMedia;
 
     [ObservableProperty]
-    private string _musicTrackTitle = "No media playing";
+    private string _musicTrackTitle = "Dibi Dibi Rek";
 
     [ObservableProperty]
-    private string _musicArtist = "Play music or video in any app";
+    private string _musicArtist = "Ismaël Lô";
 
     [ObservableProperty]
-    private string _musicAlbum = string.Empty;
+    private string _musicAlbum = "Best Of";
 
     [ObservableProperty]
-    private string _mediaSourceAppName = "Media Player";
+    private string _mediaSourceAppName = "Apple Music";
 
     [ObservableProperty]
-    private string _mediaSourceAppBadgeKey = "IconGenericMusicBadge";
+    private string _mediaSourceAppBadgeKey = "IconAppleMusicBadge";
 
     [ObservableProperty]
-    private bool _mediaIsPlaying;
+    private bool _mediaIsPlaying = true;
 
     [ObservableProperty]
-    private bool _canPlayPause;
+    private bool _canPlayPause = true;
 
     [ObservableProperty]
-    private bool _canSkipNext;
+    private bool _canSkipNext = true;
 
     [ObservableProperty]
-    private bool _canSkipPrevious;
+    private bool _canSkipPrevious = true;
 
     [ObservableProperty]
     private bool _mediaHasTimeline;
@@ -366,6 +402,24 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
         CurrentDateMonthText = now.ToString("MMM");
         CurrentDateDayText = now.ToString("dd");
         CurrentDateWeekdayText = now.ToString("ddd").ToUpperInvariant();
+
+        var days = new List<CalendarDayItem>();
+        for (int i = -3; i <= 3; i++)
+        {
+            var date = now.AddDays(i);
+            bool isToday = (i == 0);
+            string weekday = isToday
+                ? date.ToString("ddd").ToUpperInvariant()
+                : date.ToString("ddd")[0].ToString().ToUpperInvariant();
+
+            days.Add(new CalendarDayItem
+            {
+                WeekdayLabel = weekday,
+                DayNumber = date.ToString("dd"),
+                IsToday = isToday
+            });
+        }
+        CalendarDays = new ObservableCollection<CalendarDayItem>(days);
     }
 
     // --- Audio Volume Integration ---
@@ -671,8 +725,8 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void ResetSettingsDefaults()
     {
-        PendingCollapsedWidth = 250.0;
-        PendingCollapsedHeight = 36.0;
+        PendingCollapsedWidth = 240.0;
+        PendingCollapsedHeight = 34.0;
         PendingHorizontalPosition = NotchHorizontalPosition.Center;
         PendingHorizontalOffset = 0.0;
         UpdateSettingsPreview();
@@ -895,3 +949,14 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
         _mediaSessionService?.Dispose();
     }
 }
+
+/// <summary>
+/// Represents a single day item in the 7-day horizontal calendar week strip.
+/// </summary>
+public sealed class CalendarDayItem
+{
+    public string WeekdayLabel { get; set; } = string.Empty;
+    public string DayNumber { get; set; } = string.Empty;
+    public bool IsToday { get; set; }
+}
+
