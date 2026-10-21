@@ -6,6 +6,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GrumphySwarm.Animations;
 using GrumphySwarm.Core.Abstractions;
 using GrumphySwarm.Core.Models;
 using GrumphySwarm.Core.Settings;
@@ -16,8 +17,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace GrumphySwarm.ViewModels;
 
 /// <summary>
-/// Main ViewModel driving the Notch user interface, live system integrations (Volume, Brightness, GSMTC Media),
-/// and local Agent workspace management.
+/// Main ViewModel driving the Notch user interface, customizable dimensions and placement,
+/// live system integrations (Volume, Brightness, GSMTC Media with timeline),
+/// Now Playing Control Center view, and local Agent workspace management.
 /// </summary>
 public sealed partial class NotchViewModel : ObservableObject, IDisposable
 {
@@ -33,7 +35,11 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
     private readonly DispatcherTimer _clockTimer;
     private readonly DispatcherTimer _collapseDelayTimer;
     private readonly DispatcherTimer _temporaryStatusTimer;
+    private readonly DispatcherTimer _equalizerTimer;
     private bool _disposed;
+    private int _equalizerStep;
+
+    public event EventHandler? BoundsOrPositionConfigurationChanged;
 
     [ObservableProperty]
     private NotchState _currentState;
@@ -48,6 +54,12 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
     private bool _isPendingCollapse;
 
     [ObservableProperty]
+    private string _activeView = "Dashboard"; // "Dashboard", "NowPlayingCenter", "Settings"
+
+    [ObservableProperty]
+    private string _activeTab = "Nook"; // "Nook" or "Agents"
+
+    [ObservableProperty]
     private string _currentTimeText = "12:00";
 
     [ObservableProperty]
@@ -60,35 +72,63 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
     private string _currentDateWeekdayText = "THU";
 
     [ObservableProperty]
-    private string _activeTab = "Nook";
-
-    [ObservableProperty]
     private string _calendarEventTitle = "Nothing for today";
 
     // --- Silhouette & Dimensions ---
     [ObservableProperty]
-    private double _collapsedWidth;
+    private double _collapsedWidth = 250.0;
 
     [ObservableProperty]
-    private double _collapsedHeight;
+    private double _collapsedHeight = 36.0;
 
     [ObservableProperty]
-    private double _expandedWidth;
+    private double _expandedWidth = 680.0;
 
     [ObservableProperty]
-    private double _expandedHeight;
+    private double _expandedHeight = 185.0;
 
     [ObservableProperty]
-    private double _cornerRadiusCollapsed;
+    private NotchHorizontalPosition _horizontalPosition = NotchHorizontalPosition.Center;
 
     [ObservableProperty]
-    private double _cornerRadiusExpanded;
+    private double _horizontalOffset = 0.0;
+
+    [ObservableProperty]
+    private double _cornerRadiusCollapsed = 16.0;
+
+    [ObservableProperty]
+    private double _cornerRadiusExpanded = 24.0;
 
     [ObservableProperty]
     private double _flareRadiusCollapsed = 10.0;
 
     [ObservableProperty]
     private double _flareRadiusExpanded = 12.0;
+
+    // --- Settings / Live Preview Properties ---
+    [ObservableProperty]
+    private double _pendingCollapsedWidth = 250.0;
+
+    [ObservableProperty]
+    private double _pendingCollapsedHeight = 36.0;
+
+    [ObservableProperty]
+    private NotchHorizontalPosition _pendingHorizontalPosition = NotchHorizontalPosition.Center;
+
+    [ObservableProperty]
+    private double _pendingHorizontalOffset = 0.0;
+
+    [ObservableProperty]
+    private Geometry? _previewGeometry;
+
+    [ObservableProperty]
+    private double _previewWidth = 85.0;
+
+    [ObservableProperty]
+    private double _previewHeight = 16.0;
+
+    [ObservableProperty]
+    private double _previewMarginLeft = 87.0;
 
     // --- Live System Volume ---
     [ObservableProperty]
@@ -102,6 +142,9 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _volumeIconKey = "IconVolumeGeometry";
+
+    [ObservableProperty]
+    private int _volumeLevelStep = 2; // 0=Muted, 1=Low, 2=Mid, 3=High, 4=Max
 
     // --- Live Screen Brightness ---
     [ObservableProperty]
@@ -149,6 +192,12 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
     private string _musicAlbum = string.Empty;
 
     [ObservableProperty]
+    private string _mediaSourceAppName = "Media Player";
+
+    [ObservableProperty]
+    private string _mediaSourceAppBadgeKey = "IconGenericMusicBadge";
+
+    [ObservableProperty]
     private bool _mediaIsPlaying;
 
     [ObservableProperty]
@@ -161,7 +210,32 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
     private bool _canSkipPrevious;
 
     [ObservableProperty]
+    private bool _mediaHasTimeline;
+
+    [ObservableProperty]
+    private string _mediaPositionText = "--:--";
+
+    [ObservableProperty]
+    private string _mediaRemainingText = "--:--";
+
+    [ObservableProperty]
+    private double _mediaProgress = 0.0;
+
+    [ObservableProperty]
     private ImageSource? _mediaThumbnailSource;
+
+    // Equalizer Visualizer Bars (Compact, purely visual, zero mic recording)
+    [ObservableProperty]
+    private double _equalizerBar1Height = 4.0;
+
+    [ObservableProperty]
+    private double _equalizerBar2Height = 8.0;
+
+    [ObservableProperty]
+    private double _equalizerBar3Height = 12.0;
+
+    [ObservableProperty]
+    private double _equalizerBar4Height = 6.0;
 
     // --- Agents Workspace ---
     public ObservableCollection<AgentItemViewModel> AgentProfiles { get; } = new();
@@ -233,6 +307,14 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
             IsTemporaryStatusActive = false;
         };
 
+        // Compact Equalizer Animation Timer (130ms pulse when playing)
+        _equalizerTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(130)
+        };
+        _equalizerTimer.Tick += OnEqualizerTimerTick;
+        _equalizerTimer.Start();
+
         // Apply settings
         ApplySettings(_settingsService.CurrentSettings);
         _settingsService.SettingsChanged += (_, s) => ApplySettings(s);
@@ -257,10 +339,19 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
         CollapsedHeight = settings.CollapsedHeight;
         ExpandedWidth = settings.ExpandedWidth;
         ExpandedHeight = settings.ExpandedHeight;
+        HorizontalPosition = settings.HorizontalPosition;
+        HorizontalOffset = settings.HorizontalOffset;
         CornerRadiusCollapsed = settings.CornerRadiusCollapsed;
         CornerRadiusExpanded = settings.CornerRadiusExpanded;
         FlareRadiusCollapsed = settings.FlareRadiusCollapsed;
         FlareRadiusExpanded = settings.FlareRadiusExpanded;
+
+        PendingCollapsedWidth = settings.CollapsedWidth;
+        PendingCollapsedHeight = settings.CollapsedHeight;
+        PendingHorizontalPosition = settings.HorizontalPosition;
+        PendingHorizontalOffset = settings.HorizontalOffset;
+
+        UpdateSettingsPreview();
 
         if (_collapseDelayTimer != null)
         {
@@ -295,6 +386,27 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
         IsMuted = isMuted;
         VolumeText = isMuted ? "Muted" : $"{volumePercent}%";
         VolumeIconKey = isMuted ? "IconVolumeMuteGeometry" : "IconVolumeGeometry";
+
+        if (isMuted || volumePercent == 0)
+        {
+            VolumeLevelStep = 0;
+        }
+        else if (volumePercent <= 25)
+        {
+            VolumeLevelStep = 1;
+        }
+        else if (volumePercent <= 50)
+        {
+            VolumeLevelStep = 2;
+        }
+        else if (volumePercent <= 75)
+        {
+            VolumeLevelStep = 3;
+        }
+        else
+        {
+            VolumeLevelStep = 4;
+        }
 
         if (showTemporaryHud)
         {
@@ -368,11 +480,36 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
         MusicTrackTitle = track.Title;
         MusicArtist = track.Artist;
         MusicAlbum = track.Album;
+        MediaSourceAppName = track.SourceAppName;
+        MediaSourceAppBadgeKey = track.SourceAppBadgeKey;
         MediaIsPlaying = track.IsPlaying;
         CanPlayPause = track.CanPlayPause;
         CanSkipNext = track.CanSkipNext;
         CanSkipPrevious = track.CanSkipPrevious;
+        MediaHasTimeline = track.HasTimeline;
+        MediaPositionText = track.PositionText;
+        MediaRemainingText = track.RemainingText;
+        MediaProgress = track.Progress;
         MediaThumbnailSource = CreateBitmapFromBytes(track.ThumbnailBytes);
+    }
+
+    private void OnEqualizerTimerTick(object? sender, EventArgs e)
+    {
+        if (!MediaIsPlaying)
+        {
+            EqualizerBar1Height = 3.0;
+            EqualizerBar2Height = 3.0;
+            EqualizerBar3Height = 3.0;
+            EqualizerBar4Height = 3.0;
+            return;
+        }
+
+        // Rhythmic visual bar variation (purely aesthetic wave representation, no mic)
+        _equalizerStep = (_equalizerStep + 1) % 6;
+        EqualizerBar1Height = 4.0 + (Math.Sin(_equalizerStep * 1.0) + 1.0) * 4.0;
+        EqualizerBar2Height = 5.0 + (Math.Cos(_equalizerStep * 1.3) + 1.0) * 5.5;
+        EqualizerBar3Height = 4.5 + (Math.Sin(_equalizerStep * 0.8 + 1.2) + 1.0) * 6.0;
+        EqualizerBar4Height = 3.5 + (Math.Cos(_equalizerStep * 1.5 + 0.5) + 1.0) * 4.5;
     }
 
     private static BitmapImage? CreateBitmapFromBytes(byte[]? bytes)
@@ -420,6 +557,126 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
         {
             await _mediaSessionService.TrySkipPreviousAsync();
         }
+    }
+
+    [RelayCommand]
+    public void OpenNowPlayingCenter()
+    {
+        ActiveView = "NowPlayingCenter";
+        _logger.LogInformation("Navigated to Now Playing Control Center.");
+    }
+
+    [RelayCommand]
+    public void CloseNowPlayingCenter()
+    {
+        ActiveView = "Dashboard";
+        _logger.LogInformation("Returned to Dashboard view.");
+    }
+
+    // --- Settings & Customization ---
+    [RelayCommand]
+    public void OpenSettings()
+    {
+        PendingCollapsedWidth = CollapsedWidth;
+        PendingCollapsedHeight = CollapsedHeight;
+        PendingHorizontalPosition = HorizontalPosition;
+        PendingHorizontalOffset = HorizontalOffset;
+
+        UpdateSettingsPreview();
+        ActiveView = "Settings";
+        _logger.LogInformation("Opened Notch Settings view.");
+    }
+
+    [RelayCommand]
+    public void CloseSettings()
+    {
+        CancelSettings();
+    }
+
+    [RelayCommand]
+    public void SetPendingPosition(string posStr)
+    {
+        if (Enum.TryParse<NotchHorizontalPosition>(posStr, true, out var pos))
+        {
+            PendingHorizontalPosition = pos;
+            UpdateSettingsPreview();
+        }
+    }
+
+    public void OnPendingDimensionsChanged()
+    {
+        UpdateSettingsPreview();
+    }
+
+    public void UpdateSettingsPreview()
+    {
+        // Total preview simulation frame width is 260.0 DIPs
+        const double frameWidth = 260.0;
+        double previewW = Math.Max(50.0, PendingCollapsedWidth * 0.35);
+        double previewH = Math.Max(12.0, PendingCollapsedHeight * 0.35);
+        double previewFlare = 4.0;
+        double previewBottom = 5.0;
+
+        PreviewWidth = previewW;
+        PreviewHeight = previewH;
+        PreviewGeometry = NotchGeometryBuilder.BuildGeometry(previewW, previewH, previewFlare, previewBottom);
+
+        double baseLeft = PendingHorizontalPosition switch
+        {
+            NotchHorizontalPosition.Left => 10.0,
+            NotchHorizontalPosition.Right => Math.Max(0.0, frameWidth - previewW - 10.0),
+            NotchHorizontalPosition.Custom => (frameWidth - previewW) / 2.0,
+            _ => (frameWidth - previewW) / 2.0
+        };
+
+        double offsetScaled = PendingHorizontalOffset * 0.12;
+        double finalLeft = Math.Clamp(baseLeft + offsetScaled, 0.0, Math.Max(0.0, frameWidth - previewW));
+        PreviewMarginLeft = finalLeft;
+    }
+
+    [RelayCommand]
+    public async Task ApplySettingsAsync()
+    {
+        var settings = _settingsService.CurrentSettings;
+        settings.CollapsedWidth = PendingCollapsedWidth;
+        settings.CollapsedHeight = PendingCollapsedHeight;
+        settings.HorizontalPosition = PendingHorizontalPosition;
+        settings.HorizontalOffset = PendingHorizontalOffset;
+        settings.ClampBounds();
+
+        ApplySettings(settings);
+        await _settingsService.SaveSettingsAsync(settings);
+
+        BoundsOrPositionConfigurationChanged?.Invoke(this, EventArgs.Empty);
+
+        ActiveView = "Dashboard";
+        _logger.LogInformation("Committed new notch customization settings: Collapsed=({W}x{H}), Position={Pos}, Offset={Off}",
+            settings.CollapsedWidth, settings.CollapsedHeight, settings.HorizontalPosition, settings.HorizontalOffset);
+    }
+
+    [RelayCommand]
+    public void CancelSettings()
+    {
+        // Discard unapplied pending changes
+        PendingCollapsedWidth = CollapsedWidth;
+        PendingCollapsedHeight = CollapsedHeight;
+        PendingHorizontalPosition = HorizontalPosition;
+        PendingHorizontalOffset = HorizontalOffset;
+        UpdateSettingsPreview();
+
+        ActiveView = "Dashboard";
+        _logger.LogInformation("Discarded pending notch customization changes.");
+    }
+
+    [RelayCommand]
+    public void ResetSettingsDefaults()
+    {
+        PendingCollapsedWidth = 250.0;
+        PendingCollapsedHeight = 36.0;
+        PendingHorizontalPosition = NotchHorizontalPosition.Center;
+        PendingHorizontalOffset = 0.0;
+        UpdateSettingsPreview();
+        _logger.LogInformation("Restored recommended notch default preview settings.");
     }
 
     // --- Agents Workspace Integration ---
@@ -628,6 +885,7 @@ public sealed partial class NotchViewModel : ObservableObject, IDisposable
         _clockTimer.Stop();
         _collapseDelayTimer.Stop();
         _temporaryStatusTimer.Stop();
+        _equalizerTimer.Stop();
 
         _stateMachine.StateChanged -= OnStateMachineStateChanged;
         _stateMachine.PendingCollapseChanged -= OnStateMachinePendingCollapseChanged;

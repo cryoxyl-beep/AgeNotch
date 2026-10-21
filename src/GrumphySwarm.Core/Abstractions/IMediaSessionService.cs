@@ -8,7 +8,7 @@ namespace GrumphySwarm.Core.Abstractions;
 public interface IMediaSessionService : IDisposable
 {
     /// <summary>
-    /// Occurs when active media session or metadata (track, artist, playback status) changes.
+    /// Occurs when active media session or metadata (track, artist, playback status, timeline) changes.
     /// </summary>
     event EventHandler<MediaTrackInfo>? MediaTrackChanged;
 
@@ -31,4 +31,9 @@ public interface IMediaSessionService : IDisposable
     /// Skips to the previous track on the active media session.
     /// </summary>
     Task<bool> TrySkipPreviousAsync();
+
+    /// <summary>
+    /// Changes playback position in the current track if supported by the media session.
+    /// </summary>
+    Task<bool> TrySeekAsync(TimeSpan position);
 }

@@ -39,9 +39,29 @@ public sealed class DisplayManager : IDisposable
     /// </summary>
     public double CalculateCenteredLeft(double targetWidth)
     {
+        return CalculateLeft(targetWidth, GrumphySwarm.Core.Settings.NotchHorizontalPosition.Center, 0.0);
+    }
+
+    /// <summary>
+    /// Calculates the horizontal Left position on the primary monitor in WPF DIPs
+    /// based on specified alignment (Left, Center, Right, Custom) and horizontal offset.
+    /// Enforces bounds to prevent the notch from slipping off-screen.
+    /// </summary>
+    public double CalculateLeft(double targetWidth, GrumphySwarm.Core.Settings.NotchHorizontalPosition position, double offsetDips)
+    {
         var screenWidth = PrimaryScreenWidthDips;
-        var left = (screenWidth - targetWidth) / 2.0;
-        return Math.Max(0.0, left);
+        double maxLeft = Math.Max(0.0, screenWidth - targetWidth);
+
+        double baseLeft = position switch
+        {
+            GrumphySwarm.Core.Settings.NotchHorizontalPosition.Left => 24.0,
+            GrumphySwarm.Core.Settings.NotchHorizontalPosition.Right => Math.Max(0.0, screenWidth - targetWidth - 24.0),
+            GrumphySwarm.Core.Settings.NotchHorizontalPosition.Custom => (screenWidth - targetWidth) / 2.0,
+            _ => (screenWidth - targetWidth) / 2.0
+        };
+
+        double targetLeft = baseLeft + offsetDips;
+        return Math.Clamp(targetLeft, 0.0, maxLeft);
     }
 
     /// <summary>

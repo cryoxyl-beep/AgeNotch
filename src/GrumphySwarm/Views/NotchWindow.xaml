@@ -7,7 +7,7 @@
         xmlns:converters="clr-namespace:GrumphySwarm.Converters"
         xmlns:models="clr-namespace:GrumphySwarm.Core.Models;assembly=GrumphySwarm.Core"
         mc:Ignorable="d"
-        Title="Grumphy Swarm Notch"
+        Title="AgeNotch"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -34,13 +34,15 @@
             <converters:EqualityToVisibilityConverter x:Key="EqualityToVisibility" />
             <converters:EqualityToVisibilityConverter x:Key="InverseEqualityToVisibility" Invert="True" />
             <converters:TabActiveTagConverter x:Key="TabActiveTag" />
+            <converters:PositionToTagConverter x:Key="PositionToTag" />
+            <converters:DoubleToPxConverter x:Key="DoubleToPx" />
             <converters:ProgressToWidthConverter x:Key="ProgressToWidth" />
             <converters:NullToVisibilityConverter x:Key="NullToVisibility" />
             <converters:NullToVisibilityConverter x:Key="InverseNullToVisibility" Invert="True" />
         </ResourceDictionary>
     </Window.Resources>
 
-    <!-- Transparent Window Root Grid -->
+    <!-- Transparent Window Root Grid (Passes through clicks on alpha=0 to underlying apps) -->
     <Grid Background="{x:Null}"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch">
@@ -49,13 +51,13 @@
         <Grid x:Name="NotchContainer"
               HorizontalAlignment="Center"
               VerticalAlignment="Top"
-              Width="230"
-              Height="34"
+              Width="250"
+              Height="36"
               RenderOptions.BitmapScalingMode="HighQuality"
               MouseEnter="OnNotchMouseEnter"
               MouseLeave="OnNotchMouseLeave">
 
-            <!-- Deep Pure Black Background Path (rendered with mathematical flared silhouette) -->
+            <!-- Deep Pure Black Background Path (mathematical flared silhouette) -->
             <Path x:Name="NotchBackgroundPath"
                   Fill="#000000"
                   HorizontalAlignment="Stretch"
@@ -67,14 +69,16 @@
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Stretch">
 
-                <!-- [1] COLLAPSED PILL VIEW (Matches Dynamic Island visual language) -->
+                <!-- ============================================================== -->
+                <!-- [1] COLLAPSED PILL VIEW (Dynamic Island Pill)                  -->
+                <!-- ============================================================== -->
                 <Grid x:Name="CollapsedContentPanel"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
                       Opacity="1"
                       IsHitTestVisible="True">
 
-                    <!-- [1A] NORMAL IDLE STATE (Permanent green dot removed; center clean) -->
+                    <!-- [1A] NORMAL IDLE STATE (Volume on left, value on right) -->
                     <Grid Visibility="{Binding IsTemporaryStatusActive, Converter={StaticResource InverseBoolToVisibility}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -106,7 +110,7 @@
                                   Visibility="{Binding IsMuted, Converter={StaticResource BoolToVisibility}}" />
                         </StackPanel>
 
-                        <!-- Center: Clean Empty Slot (No permanent glowing green dot) -->
+                        <!-- Center: Clean Empty Slot (Distraction-free) -->
                         <Grid Grid.Column="1" />
 
                         <!-- Right: Live System Volume Percentage or Muted Label -->
@@ -119,12 +123,12 @@
                                        FontSize="11"
                                        FontWeight="SemiBold"
                                        FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
+                                       Typography.NumeralAlignment="Tabular"
                                        VerticalAlignment="Center" />
                         </StackPanel>
                     </Grid>
 
-                    <!-- [1B] TEMPORARY DYNAMIC HUD PILL (Appears on Volume or Brightness change) -->
-                    <!-- Matches the user's reference Dynamic Island status capsule style -->
+                    <!-- [1B] TEMPORARY DYNAMIC HUD PILL (Volume or Brightness change) -->
                     <Grid Visibility="{Binding IsTemporaryStatusActive, Converter={StaticResource BoolToVisibility}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -137,9 +141,7 @@
                                     Orientation="Horizontal"
                                     VerticalAlignment="Center"
                                     Margin="16,0,0,0">
-                            <!-- Normal Active Icon -->
-                            <Path x:Name="HudNormalIcon"
-                                  Fill="{StaticResource TextPrimaryBrush}"
+                            <Path Fill="{StaticResource TextPrimaryBrush}"
                                   Width="12"
                                   Height="12"
                                   Stretch="Uniform"
@@ -157,7 +159,7 @@
                                 </Path.Style>
                             </Path>
 
-                            <!-- Muted / Silent Red Pill Capsule (Matches Reference Image) -->
+                            <!-- Muted / Silent Red Pill Capsule -->
                             <Border Background="{StaticResource MuteRedBrush}"
                                     CornerRadius="6"
                                     Padding="5,2"
@@ -186,7 +188,6 @@
                                        HorizontalAlignment="Center"
                                        Margin="0,0,0,2" />
 
-                            <!-- Progress Track -->
                             <Border Grid.Row="1"
                                     Width="64"
                                     Height="3"
@@ -216,6 +217,7 @@
                                        FontSize="11"
                                        FontWeight="Bold"
                                        FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
+                                       Typography.NumeralAlignment="Tabular"
                                        VerticalAlignment="Center">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
@@ -232,7 +234,9 @@
                     </Grid>
                 </Grid>
 
-                <!-- [2] EXPANDED NOTCH PANEL -->
+                <!-- ============================================================== -->
+                <!-- [2] EXPANDED NOTCH PANEL                                       -->
+                <!-- ============================================================== -->
                 <Grid x:Name="ExpandedContentPanel"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
@@ -245,29 +249,67 @@
                         <!-- Header Row -->
                         <RowDefinition Height="*" />
                         <!-- Main Content Row -->
-                        <RowDefinition Height="18" />
-                        <!-- Bottom Pagination Row -->
                     </Grid.RowDefinitions>
 
-                    <!-- Top Header: Tabs (Nook / Agents), Controls (Pin, Settings, Collapse) -->
-                    <Grid Grid.Row="0" Margin="14,4,14,0" VerticalAlignment="Center">
+                    <!-- TOP HEADER: Dynamic header adapting to ActiveView -->
+                    <Grid Grid.Row="0" Margin="16,4,16,0" VerticalAlignment="Center">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- Left: Nook & Agents Pill Tab Buttons -->
+                        <!-- Left Slot: Tabs (when in Dashboard) OR Back button (when in Sub-view) -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <!-- Nook Tab -->
-                            <Button Style="{StaticResource NotchTabButtonStyle}"
-                                    Tag="{Binding ActiveTab, Converter={StaticResource TabActiveTag}, ConverterParameter='Nook'}"
-                                    Command="{Binding SelectTabCommand}"
-                                    CommandParameter="Nook"
-                                    Margin="0,0,6,0">
+                            <!-- Dashboard Tabs (Visible in Dashboard view) -->
+                            <StackPanel Orientation="Horizontal"
+                                        Visibility="{Binding ActiveView, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Dashboard'}">
+                                <!-- Nook Tab -->
+                                <Button Style="{StaticResource NotchTabButtonStyle}"
+                                        Tag="{Binding ActiveTab, Converter={StaticResource TabActiveTag}, ConverterParameter='Nook'}"
+                                        Command="{Binding SelectTabCommand}"
+                                        CommandParameter="Nook"
+                                        ToolTip="Dashboard view"
+                                        Margin="0,0,4,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="{StaticResource IconNookGeometry}"
+                                              Fill="{StaticResource TextPrimaryBrush}"
+                                              Width="11"
+                                              Height="11"
+                                              Stretch="Uniform"
+                                              Margin="0,0,5,0"
+                                              VerticalAlignment="Center" />
+                                        <TextBlock Text="Nook" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+
+                                <!-- Agents Tab (Clean unselected background) -->
+                                <Button Style="{StaticResource NotchTabButtonStyle}"
+                                        Tag="{Binding ActiveTab, Converter={StaticResource TabActiveTag}, ConverterParameter='Agents'}"
+                                        Command="{Binding SelectTabCommand}"
+                                        CommandParameter="Agents"
+                                        ToolTip="Agent fleet management">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="{StaticResource IconAgentsGeometry}"
+                                              Fill="{StaticResource TextSecondaryBrush}"
+                                              Width="11"
+                                              Height="11"
+                                              Stretch="Uniform"
+                                              Margin="0,0,5,0"
+                                              VerticalAlignment="Center" />
+                                        <TextBlock Text="Agents" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+
+                            <!-- Back button (Visible in NowPlayingCenter or Settings) -->
+                            <Button Style="{StaticResource NotchGhostButtonStyle}"
+                                    Command="{Binding CloseNowPlayingCenterCommand}"
+                                    ToolTip="Return to Nook Dashboard"
+                                    Visibility="{Binding ActiveView, Converter={StaticResource EqualityToVisibility}, ConverterParameter='NowPlayingCenter'}">
                                 <StackPanel Orientation="Horizontal">
-                                    <Path Data="{StaticResource IconNookGeometry}"
-                                          Fill="{StaticResource TextPrimaryBrush}"
+                                    <Path Data="{StaticResource IconArrowBackGeometry}"
+                                          Fill="{StaticResource TextSecondaryBrush}"
                                           Width="10"
                                           Height="10"
                                           Stretch="Uniform"
@@ -277,49 +319,44 @@
                                 </StackPanel>
                             </Button>
 
-                            <!-- Agents Tab (Renamed from Tray) -->
-                            <Button Style="{StaticResource NotchTabButtonStyle}"
-                                    Tag="{Binding ActiveTab, Converter={StaticResource TabActiveTag}, ConverterParameter='Agents'}"
-                                    Command="{Binding SelectTabCommand}"
-                                    CommandParameter="Agents">
+                            <Button Style="{StaticResource NotchGhostButtonStyle}"
+                                    Command="{Binding CloseSettingsCommand}"
+                                    ToolTip="Return to Dashboard"
+                                    Visibility="{Binding ActiveView, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Settings'}">
                                 <StackPanel Orientation="Horizontal">
-                                    <Path Data="{StaticResource IconAgentsGeometry}"
+                                    <Path Data="{StaticResource IconArrowBackGeometry}"
                                           Fill="{StaticResource TextSecondaryBrush}"
-                                          Width="11"
-                                          Height="11"
+                                          Width="10"
+                                          Height="10"
                                           Stretch="Uniform"
                                           Margin="0,0,5,0"
                                           VerticalAlignment="Center" />
-                                    <TextBlock Text="Agents" VerticalAlignment="Center" />
+                                    <TextBlock Text="Back" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>
 
-                        <!-- Center: Clean / Contextual Status (Permanent Green Dot Removed) -->
+                        <!-- Center Slot: Contextual Title or Indicator -->
                         <StackPanel Grid.Column="1"
                                     Orientation="Horizontal"
                                     HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Visibility="{Binding IsTemporaryStatusActive, Converter={StaticResource BoolToVisibility}}">
-                            <Border Background="#1C1C24"
-                                    BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="10"
-                                    Padding="8,2">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding TemporaryStatusTitle}"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               FontSize="10"
-                                               Margin="0,0,4,0" />
-                                    <TextBlock Text="{Binding TemporaryStatusValue}"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                               FontSize="10"
-                                               FontWeight="SemiBold" />
-                                </StackPanel>
-                            </Border>
+                                    VerticalAlignment="Center">
+                            <!-- Now Playing Source App Title in Control Center -->
+                            <TextBlock Text="{Binding MediaSourceAppName}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"
+                                       FontWeight="Medium"
+                                       Visibility="{Binding ActiveView, Converter={StaticResource EqualityToVisibility}, ConverterParameter='NowPlayingCenter'}" />
+
+                            <!-- Settings Title in Settings View -->
+                            <TextBlock Text="Notch Customization &amp; Position"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Visibility="{Binding ActiveView, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Settings'}" />
                         </StackPanel>
 
-                        <!-- Right: Actions (Pin, Settings, Collapse) -->
+                        <!-- Right Slot: Action Buttons (Pin, Settings Gear) - Chevron removed completely -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                             <!-- Pin Button -->
                             <Button Style="{StaticResource NotchIconButtonStyle}"
@@ -345,84 +382,594 @@
 
                             <!-- Settings Button -->
                             <Button Style="{StaticResource NotchIconButtonStyle}"
-                                    ToolTip="Settings"
-                                    Margin="0,0,4,0">
+                                    Command="{Binding OpenSettingsCommand}"
+                                    ToolTip="Notch Settings">
                                 <Path Data="{StaticResource IconGearGeometry}"
                                       Fill="{StaticResource TextSecondaryBrush}"
                                       Width="13"
                                       Height="13"
                                       Stretch="Uniform" />
                             </Button>
-
-                            <!-- Collapse Button -->
-                            <Button Style="{StaticResource NotchIconButtonStyle}"
-                                    Command="{Binding ForceCollapseCommand}"
-                                    ToolTip="Collapse">
-                                <Path Data="{StaticResource IconChevronDownGeometry}"
-                                      Fill="{StaticResource TextSecondaryBrush}"
-                                      Width="12"
-                                      Height="12"
-                                      Stretch="Uniform">
-                                    <Path.RenderTransform>
-                                        <RotateTransform Angle="180" CenterX="6" CenterY="6" />
-                                    </Path.RenderTransform>
-                                </Path>
-                            </Button>
                         </StackPanel>
                     </Grid>
 
-                    <!-- Main Body Area -->
-                    <Grid Grid.Row="1">
+                    <!-- MAIN BODY: Multi-view container (Dashboard, NowPlayingCenter, Settings) -->
+                    <Grid Grid.Row="1" Margin="14,4,14,8">
 
-                        <!-- [2A] NOOK TAB CONTENT (Glanceable Dashboard) -->
-                        <Grid Visibility="{Binding ActiveTab, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Nook'}"
-                              Margin="16,6,16,4">
-                            <Grid.ColumnDefinitions>
-                                <!-- Column 1: Live Media Player Widget -->
-                                <ColumnDefinition Width="2.2*" />
-                                <ColumnDefinition Width="12" />
-                                <!-- Column 2: Date & Tasks Widget -->
-                                <ColumnDefinition Width="2.2*" />
-                                <ColumnDefinition Width="12" />
-                                <!-- Column 3: Profile / Pet Widget -->
-                                <ColumnDefinition Width="1.1*" />
-                            </Grid.ColumnDefinitions>
+                        <!-- ============================================================== -->
+                        <!-- [VIEW 1] DASHBOARD VIEW: NOOK & AGENTS                         -->
+                        <!-- ============================================================== -->
+                        <Grid Visibility="{Binding ActiveView, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Dashboard'}">
 
-                            <!-- Column 1: Real System Media Card (Windows GSMTC) -->
-                            <Border Grid.Column="0"
-                                    Background="{StaticResource NotchCardBackgroundDarkBrush}"
-                                    BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="12"
-                                    Padding="10">
-                                <Grid>
+                            <!-- [1A] NOOK TAB: 3 Balanced Cards (Now Playing, Calendar, Avatar) -->
+                            <Grid Visibility="{Binding ActiveTab, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Nook'}">
+                                <Grid.ColumnDefinitions>
+                                    <!-- Column 1: Now Playing Card (Left) -->
+                                    <ColumnDefinition Width="2.3*" />
+                                    <ColumnDefinition Width="10" />
+                                    <!-- Column 2: Calendar Card (Center) -->
+                                    <ColumnDefinition Width="2.2*" />
+                                    <ColumnDefinition Width="10" />
+                                    <!-- Column 3: Profile / Avatar Card (Right) -->
+                                    <ColumnDefinition Width="1.0*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- CARD 1: Now Playing Card (Clickable to open Control Center) -->
+                                <Border Grid.Column="0"
+                                        Background="{StaticResource NotchCardBackgroundDarkBrush}"
+                                        BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="10"
+                                        Cursor="Hand">
+                                    <Border.InputBindings>
+                                        <MouseBinding MouseAction="LeftClick" Command="{Binding OpenNowPlayingCenterCommand}" />
+                                    </Border.InputBindings>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Album Artwork with App Source Badge -->
+                                        <Grid Grid.Column="0" Margin="0,0,10,0">
+                                            <Border Width="54"
+                                                    Height="54"
+                                                    CornerRadius="8"
+                                                    ClipToBounds="True"
+                                                    Background="#181820">
+                                                <Grid>
+                                                    <Image Source="{Binding MediaThumbnailSource}"
+                                                           Stretch="UniformToFill"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+
+                                                    <!-- Fallback Music Note -->
+                                                    <Border Background="#1C1C24"
+                                                            Visibility="{Binding MediaThumbnailSource, Converter={StaticResource InverseNullToVisibility}, FallbackValue=Visible}">
+                                                        <Path Data="{StaticResource IconMusicNoteGeometry}"
+                                                              Fill="{StaticResource TextMutedBrush}"
+                                                              Width="18"
+                                                              Height="18"
+                                                              Stretch="Uniform"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center" />
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- Source App Badge Icon (Bottom Right of Artwork) -->
+                                            <Border HorizontalAlignment="Right"
+                                                    VerticalAlignment="Bottom"
+                                                    Width="18"
+                                                    Height="18"
+                                                    CornerRadius="5"
+                                                    Background="#EF4444"
+                                                    Margin="0,0,-4,-4"
+                                                    SnapsToDevicePixels="True">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#EF4444" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconSpotifyBadge">
+                                                                <Setter Property="Background" Value="#1DB954" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconBrowserBadge">
+                                                                <Setter Property="Background" Value="#2563EB" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconGenericMusicBadge">
+                                                                <Setter Property="Background" Value="#6366F1" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Path Width="9"
+                                                      Height="9"
+                                                      Stretch="Uniform"
+                                                      Fill="White"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center">
+                                                    <Path.Style>
+                                                        <Style TargetType="Path">
+                                                            <Setter Property="Data" Value="{StaticResource IconAppleMusicBadge}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconSpotifyBadge">
+                                                                    <Setter Property="Data" Value="{StaticResource IconSpotifyBadge}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconBrowserBadge">
+                                                                    <Setter Property="Data" Value="{StaticResource IconBrowserBadge}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding MediaSourceAppBadgeKey}" Value="IconGenericMusicBadge">
+                                                                    <Setter Property="Data" Value="{StaticResource IconMusicNoteGeometry}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Path.Style>
+                                                </Path>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Track Metadata & Mini Controls -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding MusicTrackTitle}"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
+                                                       TextTrimming="CharacterEllipsis" />
+
+                                            <TextBlock Text="{Binding MusicArtist}"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       FontSize="10"
+                                                       Margin="0,1,0,0"
+                                                       TextTrimming="CharacterEllipsis" />
+
+                                            <!-- Controls Row -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                                <Button Style="{StaticResource NotchIconButtonStyle}"
+                                                        Command="{Binding MediaSkipPreviousCommand}"
+                                                        IsEnabled="{Binding CanSkipPrevious}"
+                                                        Padding="3"
+                                                        Margin="0,0,4,0"
+                                                        ToolTip="Previous track">
+                                                    <Path Data="{StaticResource IconPrevGeometry}"
+                                                          Fill="{StaticResource TextSecondaryBrush}"
+                                                          Width="9"
+                                                          Height="9"
+                                                          Stretch="Uniform" />
+                                                </Button>
+
+                                                <Button Style="{StaticResource NotchIconButtonStyle}"
+                                                        Command="{Binding ToggleMediaPlayPauseCommand}"
+                                                        IsEnabled="{Binding CanPlayPause}"
+                                                        Padding="3"
+                                                        Margin="0,0,4,0"
+                                                        ToolTip="Play / Pause">
+                                                    <Path Width="10"
+                                                          Height="10"
+                                                          Stretch="Uniform"
+                                                          Fill="{StaticResource TextPrimaryBrush}">
+                                                        <Path.Style>
+                                                            <Style TargetType="Path">
+                                                                <Setter Property="Data" Value="{StaticResource IconPlayGeometry}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding MediaIsPlaying}" Value="True">
+                                                                        <Setter Property="Data" Value="{StaticResource IconPauseGeometry}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Path.Style>
+                                                    </Path>
+                                                </Button>
+
+                                                <Button Style="{StaticResource NotchIconButtonStyle}"
+                                                        Command="{Binding MediaSkipNextCommand}"
+                                                        IsEnabled="{Binding CanSkipNext}"
+                                                        Padding="3"
+                                                        ToolTip="Next track">
+                                                    <Path Data="{StaticResource IconNextGeometry}"
+                                                          Fill="{StaticResource TextSecondaryBrush}"
+                                                          Width="9"
+                                                          Height="9"
+                                                          Stretch="Uniform" />
+                                                </Button>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <!-- CARD 2: Calendar Card (Horizontal strip + active today pill) -->
+                                <Border Grid.Column="2"
+                                        Background="{StaticResource NotchCardBackgroundDarkBrush}"
+                                        BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="10,8">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Month & Horizontal 7-Day Strip -->
+                                        <Grid Grid.Row="0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Live Month Label -->
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding CurrentDateMonthText, FallbackValue='Oct'}"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       FontSize="14"
+                                                       FontWeight="Bold"
+                                                       FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,8,0" />
+
+                                            <!-- 7-Day Strip -->
+                                            <UniformGrid Grid.Column="1" Columns="7" HorizontalAlignment="Stretch">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="S" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="18" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
+                                                </StackPanel>
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="M" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="19" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
+                                                </StackPanel>
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="T" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="20" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
+                                                </StackPanel>
+                                                <!-- Today Highlight Capsule -->
+                                                <Border Background="{StaticResource CalendarBlueBrush}"
+                                                        CornerRadius="6"
+                                                        Padding="3,1"
+                                                        HorizontalAlignment="Center">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding CurrentDateWeekdayText, FallbackValue='WED'}"
+                                                                   FontSize="7"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="White"
+                                                                   HorizontalAlignment="Center" />
+                                                        <TextBlock Text="{Binding CurrentDateDayText, FallbackValue='21'}"
+                                                                   FontSize="10"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="White"
+                                                                   HorizontalAlignment="Center" />
+                                                    </StackPanel>
+                                                </Border>
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="T" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="22" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
+                                                </StackPanel>
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="F" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="23" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
+                                                </StackPanel>
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="S" FontSize="7" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
+                                                    <TextBlock Text="24" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,1,0,0" />
+                                                </StackPanel>
+                                            </UniformGrid>
+                                        </Grid>
+
+                                        <!-- Calendar Event Subtitle -->
+                                        <StackPanel Grid.Row="1"
+                                                    Orientation="Horizontal"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    Margin="0,8,0,0">
+                                            <Path Data="{StaticResource IconCalendarGeometry}"
+                                                  Fill="{StaticResource TextMutedBrush}"
+                                                  Width="9"
+                                                  Height="9"
+                                                  Stretch="Uniform"
+                                                  Margin="0,0,5,0"
+                                                  VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding CalendarEventTitle, FallbackValue='Nothing for today'}"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       FontSize="10"
+                                                       VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <!-- CARD 3: Profile / Avatar Card -->
+                                <Border Grid.Column="4"
+                                        Background="{StaticResource NotchCardBackgroundDarkBrush}"
+                                        BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="6"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch">
+                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Ellipse Width="52"
+                                                 Height="52"
+                                                 Stroke="{StaticResource NotchBorderDarkBrush}"
+                                                 StrokeThickness="1.5" />
+                                        <Ellipse Width="46" Height="46">
+                                            <Ellipse.Fill>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                    <GradientStop Color="#334155" Offset="0" />
+                                                    <GradientStop Color="#0F172A" Offset="1" />
+                                                </LinearGradientBrush>
+                                            </Ellipse.Fill>
+                                        </Ellipse>
+                                        <Path Data="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+                                              Fill="{StaticResource TextSecondaryBrush}"
+                                              Width="20"
+                                              Height="20"
+                                              Stretch="Uniform"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </Grid>
+
+                            <!-- [1B] AGENTS TAB: Fleet Profile Workspace -->
+                            <Grid Visibility="{Binding ActiveTab, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Agents'}">
+                                <!-- VIEW: Profiles List -->
+                                <Grid Visibility="{Binding IsEditingAgent, Converter={StaticResource InverseBoolToVisibility}}">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Header -->
+                                    <Grid Grid.Row="0" Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="Agent Swarm"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+                                            <Border Background="#1C1C24"
+                                                    CornerRadius="8"
+                                                    Padding="6,1"
+                                                    Margin="8,0,0,0"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding AgentProfiles.Count, StringFormat='{}{0} configured'}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           FontSize="9" />
+                                            </Border>
+                                        </StackPanel>
+
+                                        <Button Grid.Column="1"
+                                                Style="{StaticResource NotchAccentButtonStyle}"
+                                                Command="{Binding OpenCreateAgentCommand}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource IconPlusGeometry}"
+                                                      Fill="White"
+                                                      Width="9"
+                                                      Height="9"
+                                                      Stretch="Uniform"
+                                                      Margin="0,0,4,0"
+                                                      VerticalAlignment="Center" />
+                                                <TextBlock Text="Create Agent" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+
+                                    <!-- Profiles Grid -->
+                                    <ScrollViewer Grid.Row="1"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsControl ItemsSource="{Binding AgentProfiles}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Columns="2" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type viewModels:AgentItemViewModel}">
+                                                    <Border Background="{StaticResource NotchCardBackgroundDarkBrush}"
+                                                            BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="10"
+                                                            Padding="10,8"
+                                                            Margin="3">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto" />
+                                                                <RowDefinition Height="*" />
+                                                                <RowDefinition Height="Auto" />
+                                                            </Grid.RowDefinitions>
+
+                                                            <!-- Row 0: Name & Role Badge -->
+                                                            <Grid Grid.Row="0">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <TextBlock Grid.Column="0"
+                                                                           Text="{Binding Name}"
+                                                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                                                           FontSize="11"
+                                                                           FontWeight="SemiBold"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           VerticalAlignment="Center" />
+
+                                                                <Border Grid.Column="1"
+                                                                        Background="#1E1E28"
+                                                                        CornerRadius="5"
+                                                                        Padding="5,1"
+                                                                        Margin="4,0,0,0">
+                                                                    <TextBlock Text="{Binding TaskTypeLabel}"
+                                                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                                                               FontSize="8" />
+                                                                </Border>
+                                                            </Grid>
+
+                                                            <!-- Row 1: Description -->
+                                                            <TextBlock Grid.Row="1"
+                                                                       Text="{Binding Description}"
+                                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                                       FontSize="9"
+                                                                       TextWrapping="Wrap"
+                                                                       MaxHeight="26"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       Margin="0,3,0,5" />
+
+                                                            <!-- Row 2: Standby Status Note & Actions -->
+                                                            <Grid Grid.Row="2">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <Border Grid.Column="0"
+                                                                        Background="#181822"
+                                                                        BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
+                                                                        BorderThickness="1"
+                                                                        CornerRadius="4"
+                                                                        Padding="4,1"
+                                                                        HorizontalAlignment="Left"
+                                                                        VerticalAlignment="Center">
+                                                                    <TextBlock Text="{Binding StatusNote}"
+                                                                               Foreground="#94A3B8"
+                                                                               FontSize="8" />
+                                                                </Border>
+
+                                                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                                    <Button Style="{StaticResource NotchIconButtonStyle}"
+                                                                            Command="{Binding EditCommand}"
+                                                                            ToolTip="Edit Profile"
+                                                                            Padding="2"
+                                                                            Margin="0,0,2,0">
+                                                                        <Path Data="{StaticResource IconEditGeometry}"
+                                                                              Fill="{StaticResource TextMutedBrush}"
+                                                                              Width="9"
+                                                                              Height="9"
+                                                                              Stretch="Uniform" />
+                                                                    </Button>
+                                                                    <Button Style="{StaticResource NotchIconButtonStyle}"
+                                                                            Command="{Binding DeleteCommand}"
+                                                                            ToolTip="Delete Profile"
+                                                                            Padding="2">
+                                                                        <Path Data="{StaticResource IconDeleteGeometry}"
+                                                                              Fill="{StaticResource TextMutedBrush}"
+                                                                              Width="9"
+                                                                              Height="9"
+                                                                              Stretch="Uniform" />
+                                                                    </Button>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+
+                                <!-- VIEW: Agent Editor Modal Card -->
+                                <Border Visibility="{Binding IsEditingAgent, Converter={StaticResource BoolToVisibility}}"
+                                        Background="{StaticResource NotchCardBackgroundDarkBrush}"
+                                        BorderBrush="{StaticResource NotchBorderDarkBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="14,10">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0"
+                                                   Text="{Binding EditorTitle}"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Margin="0,0,0,8" />
+
+                                        <Grid Grid.Row="1" Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="65" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Name:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" VerticalAlignment="Center" />
+                                            <TextBox Grid.Column="1" Style="{StaticResource NotchTextBoxStyle}" Text="{Binding EditorAgentName, UpdateSourceTrigger=PropertyChanged}" />
+                                        </Grid>
+
+                                        <Grid Grid.Row="2" Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="65" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Task Goal:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" VerticalAlignment="Center" />
+                                            <TextBox Grid.Column="1" Style="{StaticResource NotchTextBoxStyle}" Text="{Binding EditorAgentDescription, UpdateSourceTrigger=PropertyChanged}" />
+                                        </Grid>
+
+                                        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Style="{StaticResource NotchGhostButtonStyle}" Command="{Binding CancelAgentEditCommand}" Margin="0,0,6,0">
+                                                <TextBlock Text="Cancel" />
+                                            </Button>
+                                            <Button Style="{StaticResource NotchAccentButtonStyle}" Command="{Binding SaveAgentProfileCommand}">
+                                                <TextBlock Text="Save Agent" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ============================================================== -->
+                        <!-- [VIEW 2] NOW PLAYING CONTROL CENTER (Reference 4)               -->
+                        <!-- ============================================================== -->
+                        <Border Visibility="{Binding ActiveView, Converter={StaticResource EqualityToVisibility}, ConverterParameter='NowPlayingCenter'}"
+                                Background="{StaticResource NotchCardBackgroundDarkBrush}"
+                                BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
+                                BorderThickness="1"
+                                CornerRadius="14"
+                                Padding="14,10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <!-- Artwork & Title & Equalizer -->
+                                    <RowDefinition Height="Auto" />
+                                    <!-- Progress Bar & Timestamps -->
+                                    <RowDefinition Height="Auto" />
+                                    <!-- Playback & Volume Controls Row -->
+                                </Grid.RowDefinitions>
+
+                                <!-- Top Row: Large Artwork + Metadata + Equalizer Wave -->
+                                <Grid Grid.Row="0" Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- Album Art Thumbnail with Fallback -->
+                                    <!-- Artwork with rounded corners -->
                                     <Border Grid.Column="0"
-                                            Width="56"
-                                            Height="56"
-                                            CornerRadius="8"
+                                            Width="64"
+                                            Height="64"
+                                            CornerRadius="10"
                                             ClipToBounds="True"
-                                            Background="#181820"
-                                            Margin="0,0,10,0">
+                                            Background="#181822"
+                                            Margin="0,0,12,0">
                                         <Grid>
-                                            <!-- Live Album Art -->
                                             <Image Source="{Binding MediaThumbnailSource}"
                                                    Stretch="UniformToFill"
                                                    HorizontalAlignment="Center"
                                                    VerticalAlignment="Center" />
-
-                                            <!-- Fallback Music Note Icon when no thumbnail -->
-                                            <Border Background="#1C1C24"
+                                            <Border Background="#1C1C26"
                                                     Visibility="{Binding MediaThumbnailSource, Converter={StaticResource InverseNullToVisibility}, FallbackValue=Visible}">
                                                 <Path Data="{StaticResource IconMusicNoteGeometry}"
                                                       Fill="{StaticResource TextMutedBrush}"
-                                                      Width="18"
-                                                      Height="18"
+                                                      Width="22"
+                                                      Height="22"
                                                       Stretch="Uniform"
                                                       HorizontalAlignment="Center"
                                                       VerticalAlignment="Center" />
@@ -430,469 +977,475 @@
                                         </Grid>
                                     </Border>
 
-                                    <!-- Track Info & Controls -->
+                                    <!-- Track Title & Artist -->
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding MusicTrackTitle}"
                                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                                   FontSize="12"
+                                                   FontSize="14"
                                                    FontWeight="SemiBold"
                                                    FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
                                                    TextTrimming="CharacterEllipsis" />
 
                                         <TextBlock Text="{Binding MusicArtist}"
                                                    Foreground="{StaticResource TextSecondaryBrush}"
-                                                   FontSize="10"
-                                                   Margin="0,1,0,0"
+                                                   FontSize="11"
+                                                   Margin="0,2,0,0"
                                                    TextTrimming="CharacterEllipsis" />
 
-                                        <TextBlock Text="{Binding MusicAlbum}"
+                                        <TextBlock Text="{Binding MediaSourceAppName}"
                                                    Foreground="{StaticResource TextMutedBrush}"
                                                    FontSize="9"
-                                                   TextTrimming="CharacterEllipsis" />
-
-                                        <!-- Real Transport Controls -->
-                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                            <!-- Previous Button -->
-                                            <Button Style="{StaticResource NotchIconButtonStyle}"
-                                                    Command="{Binding MediaSkipPreviousCommand}"
-                                                    IsEnabled="{Binding CanSkipPrevious}"
-                                                    Padding="3"
-                                                    Margin="0,0,4,0"
-                                                    ToolTip="Previous track">
-                                                <Path Data="{StaticResource IconPrevGeometry}"
-                                                      Fill="{StaticResource TextSecondaryBrush}"
-                                                      Width="10"
-                                                      Height="10"
-                                                      Stretch="Uniform" />
-                                            </Button>
-
-                                            <!-- Play / Pause Button -->
-                                            <Button Style="{StaticResource NotchIconButtonStyle}"
-                                                    Command="{Binding ToggleMediaPlayPauseCommand}"
-                                                    IsEnabled="{Binding CanPlayPause}"
-                                                    Padding="3"
-                                                    Margin="0,0,4,0"
-                                                    ToolTip="Play / Pause">
-                                                <Path Width="10"
-                                                      Height="10"
-                                                      Stretch="Uniform"
-                                                      Fill="{StaticResource TextPrimaryBrush}">
-                                                    <Path.Style>
-                                                        <Style TargetType="Path">
-                                                            <Setter Property="Data" Value="{StaticResource IconPlayGeometry}" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding MediaIsPlaying}" Value="True">
-                                                                    <Setter Property="Data" Value="{StaticResource IconPauseGeometry}" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Path.Style>
-                                                </Path>
-                                            </Button>
-
-                                            <!-- Next Button -->
-                                            <Button Style="{StaticResource NotchIconButtonStyle}"
-                                                    Command="{Binding MediaSkipNextCommand}"
-                                                    IsEnabled="{Binding CanSkipNext}"
-                                                    Padding="3"
-                                                    ToolTip="Next track">
-                                                <Path Data="{StaticResource IconNextGeometry}"
-                                                      Fill="{StaticResource TextSecondaryBrush}"
-                                                      Width="10"
-                                                      Height="10"
-                                                      Stretch="Uniform" />
-                                            </Button>
-                                        </StackPanel>
+                                                   Margin="0,2,0,0" />
                                     </StackPanel>
-                                </Grid>
-                            </Border>
 
-                            <!-- Column 2: Calendar / Date / Schedule -->
-                            <Border Grid.Column="2"
-                                    Background="{StaticResource NotchCardBackgroundDarkBrush}"
-                                    BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="12"
-                                    Padding="10,8">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
-                                    </Grid.RowDefinitions>
-
-                                    <!-- Month and Days Row -->
-                                    <Grid Grid.Row="0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <!-- Live Month Label -->
-                                        <TextBlock Grid.Column="0"
-                                                   Text="{Binding CurrentDateMonthText, FallbackValue='Oct'}"
-                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                   FontSize="14"
-                                                   FontWeight="Bold"
-                                                   FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,10,0" />
-
-                                        <!-- Calendar Days Strip with Active Highlight -->
-                                        <UniformGrid Grid.Column="1" Columns="5" HorizontalAlignment="Stretch">
-                                            <StackPanel HorizontalAlignment="Center">
-                                                <TextBlock Text="M" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
-                                                <TextBlock Text="19" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
-                                            </StackPanel>
-                                            <StackPanel HorizontalAlignment="Center">
-                                                <TextBlock Text="T" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
-                                                <TextBlock Text="20" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
-                                            </StackPanel>
-                                            <!-- Today (Live Active Highlight) -->
-                                            <Border Background="{StaticResource CalendarBlueBrush}"
-                                                    CornerRadius="6"
-                                                    Padding="4,2"
-                                                    HorizontalAlignment="Center">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding CurrentDateWeekdayText, FallbackValue='WED'}"
-                                                               FontSize="8"
-                                                               FontWeight="Bold"
-                                                               Foreground="White"
-                                                               HorizontalAlignment="Center" />
-                                                    <TextBlock Text="{Binding CurrentDateDayText, FallbackValue='21'}"
-                                                               FontSize="11"
-                                                               FontWeight="Bold"
-                                                               Foreground="White"
-                                                               HorizontalAlignment="Center" />
-                                                </StackPanel>
-                                            </Border>
-                                            <StackPanel HorizontalAlignment="Center">
-                                                <TextBlock Text="T" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
-                                                <TextBlock Text="22" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
-                                            </StackPanel>
-                                            <StackPanel HorizontalAlignment="Center">
-                                                <TextBlock Text="F" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" />
-                                                <TextBlock Text="23" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
-                                            </StackPanel>
-                                        </UniformGrid>
-                                    </Grid>
-
-                                    <!-- Calendar Event Subtitle -->
-                                    <StackPanel Grid.Row="1"
+                                    <!-- Equalizer Visualizer Wave Bars (Right) -->
+                                    <StackPanel Grid.Column="2"
                                                 Orientation="Horizontal"
-                                                HorizontalAlignment="Center"
                                                 VerticalAlignment="Center"
-                                                Margin="0,8,0,0">
-                                        <Path Data="{StaticResource IconCalendarGeometry}"
-                                              Fill="{StaticResource TextMutedBrush}"
-                                              Width="10"
-                                              Height="10"
-                                              Stretch="Uniform"
-                                              Margin="0,0,5,0"
-                                              VerticalAlignment="Center" />
-                                        <TextBlock Text="{Binding CalendarEventTitle, FallbackValue='Nothing for today'}"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   FontSize="10"
-                                                   VerticalAlignment="Center" />
+                                                HorizontalAlignment="Right"
+                                                Margin="0,0,4,0">
+                                        <!-- Bar 1 -->
+                                        <Border Width="3" Height="{Binding EqualizerBar1Height}"
+                                                Background="{StaticResource CalendarBlueBrush}"
+                                                CornerRadius="1.5"
+                                                Margin="1.5,0"
+                                                VerticalAlignment="Bottom" />
+                                        <!-- Bar 2 -->
+                                        <Border Width="3" Height="{Binding EqualizerBar2Height}"
+                                                Background="{StaticResource CalendarBlueBrush}"
+                                                CornerRadius="1.5"
+                                                Margin="1.5,0"
+                                                VerticalAlignment="Bottom" />
+                                        <!-- Bar 3 -->
+                                        <Border Width="3" Height="{Binding EqualizerBar3Height}"
+                                                Background="{StaticResource CalendarBlueBrush}"
+                                                CornerRadius="1.5"
+                                                Margin="1.5,0"
+                                                VerticalAlignment="Bottom" />
+                                        <!-- Bar 4 -->
+                                        <Border Width="3" Height="{Binding EqualizerBar4Height}"
+                                                Background="{StaticResource CalendarBlueBrush}"
+                                                CornerRadius="1.5"
+                                                Margin="1.5,0"
+                                                VerticalAlignment="Bottom" />
                                     </StackPanel>
                                 </Grid>
-                            </Border>
 
-                            <!-- Column 3: Avatar / Desktop Pet Reserved -->
-                            <Border Grid.Column="4"
-                                    Background="{StaticResource NotchCardBackgroundDarkBrush}"
-                                    BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="12"
-                                    Padding="8"
-                                    HorizontalAlignment="Stretch"
-                                    VerticalAlignment="Stretch">
-                                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <Ellipse Width="56"
-                                             Height="56"
-                                             Stroke="{StaticResource NotchBorderDarkBrush}"
-                                             StrokeThickness="1.5" />
-                                    <Ellipse Width="50" Height="50">
-                                        <Ellipse.Fill>
-                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                                <GradientStop Color="#334155" Offset="0" />
-                                                <GradientStop Color="#0F172A" Offset="1" />
-                                            </LinearGradientBrush>
-                                        </Ellipse.Fill>
-                                    </Ellipse>
-                                    <Path Data="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                                          Fill="{StaticResource TextSecondaryBrush}"
-                                          Width="22"
-                                          Height="22"
-                                          Stretch="Uniform"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center" />
-                                </Grid>
-                            </Border>
-                        </Grid>
-
-                        <!-- [2B] AGENTS WORKSPACE VIEW (ActiveTab == 'Agents') -->
-                        <Grid Visibility="{Binding ActiveTab, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Agents'}"
-                              Margin="16,4,16,4">
-
-                            <!-- VIEW 1: Profiles List View -->
-                            <Grid Visibility="{Binding IsEditingAgent, Converter={StaticResource InverseBoolToVisibility}}">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" />
-                                </Grid.RowDefinitions>
-
-                                <!-- Header Bar: Title, Count, and Create Button -->
-                                <Grid Grid.Row="0" Margin="0,0,0,6">
+                                <!-- Middle Row: Progress Bar & Timestamps -->
+                                <Grid Grid.Row="1" Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="Agent Swarm"
-                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                   FontSize="12"
-                                                   FontWeight="SemiBold"
-                                                   FontFamily="Segoe UI Variable Display, Segoe UI, sans-serif"
-                                                   VerticalAlignment="Center" />
-                                        <Border Background="#1C1C24"
-                                                CornerRadius="8"
-                                                Padding="6,1"
-                                                Margin="8,0,0,0"
-                                                VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding AgentProfiles.Count, StringFormat='{}{0} configured'}"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"
-                                                       FontSize="9" />
-                                        </Border>
-                                    </StackPanel>
+                                    <!-- Elapsed Time Text -->
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding MediaPositionText}"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               FontSize="10"
+                                               FontFamily="Segoe UI Variable Text, Segoe UI, sans-serif"
+                                               Typography.NumeralAlignment="Tabular"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0" />
 
-                                    <!-- "+ Create Agent" Button -->
-                                    <Button Grid.Column="1"
-                                            Style="{StaticResource NotchAccentButtonStyle}"
-                                            Command="{Binding OpenCreateAgentCommand}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Path Data="{StaticResource IconPlusGeometry}"
-                                                  Fill="White"
-                                                  Width="9"
-                                                  Height="9"
-                                                  Stretch="Uniform"
-                                                  Margin="0,0,4,0"
-                                                  VerticalAlignment="Center" />
-                                            <TextBlock Text="Create Agent" VerticalAlignment="Center" />
-                                        </StackPanel>
-                                    </Button>
+                                    <!-- Progress Slider Track -->
+                                    <Border Grid.Column="1"
+                                            Height="4"
+                                            Background="#2A2A36"
+                                            CornerRadius="2"
+                                            VerticalAlignment="Center">
+                                        <Border HorizontalAlignment="Left"
+                                                Height="4"
+                                                CornerRadius="2"
+                                                Background="{StaticResource CalendarBlueBrush}">
+                                            <Border.Width>
+                                                <MultiBinding Converter="{StaticResource ProgressToWidth}">
+                                                    <Binding Path="MediaProgress" />
+                                                    <Binding RelativeSource="{RelativeSource AncestorType=Border, AncestorLevel=1}" Path="ActualWidth" />
+                                                </MultiBinding>
+                                            </Border.Width>
+                                        </Border>
+                                    </Border>
+
+                                    <!-- Remaining Time Text -->
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding MediaRemainingText}"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               FontSize="10"
+                                               FontFamily="Segoe UI Variable Text, Segoe UI, sans-serif"
+                                               Typography.NumeralAlignment="Tabular"
+                                               VerticalAlignment="Center"
+                                               Margin="8,0,0,0" />
                                 </Grid>
 
-                                <!-- Cards List -->
-                                <ScrollViewer Grid.Row="1"
-                                              VerticalScrollBarVisibility="Auto"
-                                              HorizontalScrollBarVisibility="Disabled">
-                                    <ItemsControl ItemsSource="{Binding AgentProfiles}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <UniformGrid Columns="2" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate DataType="{x:Type viewModels:AgentItemViewModel}">
-                                                <Border Background="{StaticResource NotchCardBackgroundDarkBrush}"
-                                                        BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
-                                                        BorderThickness="1"
-                                                        CornerRadius="10"
-                                                        Padding="10,8"
-                                                        Margin="4">
-                                                    <Grid>
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="Auto" />
-                                                            <RowDefinition Height="*" />
-                                                            <RowDefinition Height="Auto" />
-                                                        </Grid.RowDefinitions>
+                                <!-- Bottom Row: Transport Controls + Volume Visualizer -->
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                                                        <!-- Row 0: Name and Type Tag -->
-                                                        <Grid Grid.Row="0">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                            </Grid.ColumnDefinitions>
+                                    <!-- Favorite / Star Icon -->
+                                    <Button Grid.Column="0"
+                                            Style="{StaticResource NotchIconButtonStyle}"
+                                            ToolTip="Favorite track">
+                                        <Path Data="{StaticResource IconStarGeometry}"
+                                              Fill="{StaticResource TextSecondaryBrush}"
+                                              Width="14"
+                                              Height="14"
+                                              Stretch="Uniform" />
+                                    </Button>
 
-                                                            <TextBlock Grid.Column="0"
-                                                                       Text="{Binding Name}"
-                                                                       Foreground="{StaticResource TextPrimaryBrush}"
-                                                                       FontSize="11"
-                                                                       FontWeight="SemiBold"
-                                                                       TextTrimming="CharacterEllipsis"
-                                                                       VerticalAlignment="Center" />
+                                    <!-- Centered Playback Controls -->
+                                    <StackPanel Grid.Column="1"
+                                                Orientation="Horizontal"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center">
+                                        <!-- Previous Track -->
+                                        <Button Style="{StaticResource NotchIconButtonStyle}"
+                                                Command="{Binding MediaSkipPreviousCommand}"
+                                                IsEnabled="{Binding CanSkipPrevious}"
+                                                Padding="6"
+                                                Margin="0,0,8,0"
+                                                ToolTip="Previous">
+                                            <Path Data="{StaticResource IconPrevGeometry}"
+                                                  Fill="{StaticResource TextPrimaryBrush}"
+                                                  Width="14"
+                                                  Height="14"
+                                                  Stretch="Uniform" />
+                                        </Button>
 
-                                                            <!-- Task Type Tag -->
-                                                            <Border Grid.Column="1"
-                                                                    Background="#1E1E28"
-                                                                    CornerRadius="5"
-                                                                    Padding="5,1"
-                                                                    Margin="4,0,0,0">
-                                                                <TextBlock Text="{Binding TaskTypeLabel}"
-                                                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                                                           FontSize="8" />
-                                                            </Border>
-                                                        </Grid>
+                                        <!-- Play / Pause Prominent Button -->
+                                        <Button Style="{StaticResource NotchIconButtonStyle}"
+                                                Command="{Binding ToggleMediaPlayPauseCommand}"
+                                                IsEnabled="{Binding CanPlayPause}"
+                                                Padding="8"
+                                                Margin="0,0,8,0"
+                                                ToolTip="Play / Pause">
+                                            <Path Width="18"
+                                                  Height="18"
+                                                  Stretch="Uniform"
+                                                  Fill="{StaticResource TextPrimaryBrush}">
+                                                <Path.Style>
+                                                    <Style TargetType="Path">
+                                                        <Setter Property="Data" Value="{StaticResource IconPlayGeometry}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding MediaIsPlaying}" Value="True">
+                                                                <Setter Property="Data" Value="{StaticResource IconPauseGeometry}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Path.Style>
+                                            </Path>
+                                        </Button>
 
-                                                        <!-- Row 1: Description -->
-                                                        <TextBlock Grid.Row="1"
-                                                                   Text="{Binding Description}"
-                                                                   Foreground="{StaticResource TextMutedBrush}"
-                                                                   FontSize="9"
-                                                                   TextWrapping="Wrap"
-                                                                   MaxHeight="26"
-                                                                   TextTrimming="CharacterEllipsis"
-                                                                   Margin="0,3,0,6" />
+                                        <!-- Next Track -->
+                                        <Button Style="{StaticResource NotchIconButtonStyle}"
+                                                Command="{Binding MediaSkipNextCommand}"
+                                                IsEnabled="{Binding CanSkipNext}"
+                                                Padding="6"
+                                                ToolTip="Next">
+                                            <Path Data="{StaticResource IconNextGeometry}"
+                                                  Fill="{StaticResource TextPrimaryBrush}"
+                                                  Width="14"
+                                                  Height="14"
+                                                  Stretch="Uniform" />
+                                        </Button>
+                                    </StackPanel>
 
-                                                        <!-- Row 2: Status Note & Action Buttons -->
-                                                        <Grid Grid.Row="2">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                            </Grid.ColumnDefinitions>
+                                    <!-- Right: Volume Level Readout & Compact Visualizer Bars -->
+                                    <StackPanel Grid.Column="2"
+                                                Orientation="Horizontal"
+                                                VerticalAlignment="Center"
+                                                ToolTip="Current System Volume">
+                                        <Path Data="{StaticResource IconVolumeGeometry}"
+                                              Fill="{StaticResource TextSecondaryBrush}"
+                                              Width="11"
+                                              Height="11"
+                                              Stretch="Uniform"
+                                              Margin="0,0,4,0"
+                                              VerticalAlignment="Center" />
 
-                                                            <!-- Standby Status Badge -->
-                                                            <Border Grid.Column="0"
-                                                                    Background="#181822"
-                                                                    BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
-                                                                    BorderThickness="1"
-                                                                    CornerRadius="4"
-                                                                    Padding="4,1"
-                                                                    HorizontalAlignment="Left"
-                                                                    VerticalAlignment="Center">
-                                                                <TextBlock Text="{Binding StatusNote}"
-                                                                           Foreground="#94A3B8"
-                                                                           FontSize="8" />
-                                                            </Border>
+                                        <TextBlock Text="{Binding VolumeText}"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="10"
+                                                   FontWeight="SemiBold"
+                                                   Typography.NumeralAlignment="Tabular"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,6,0" />
 
-                                                            <!-- Action Buttons: Edit, Delete -->
-                                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                                <Button Style="{StaticResource NotchIconButtonStyle}"
-                                                                        Command="{Binding EditCommand}"
-                                                                        ToolTip="Edit Profile"
-                                                                        Padding="2"
-                                                                        Margin="0,0,2,0">
-                                                                    <Path Data="{StaticResource IconEditGeometry}"
-                                                                          Fill="{StaticResource TextMutedBrush}"
-                                                                          Width="9"
-                                                                          Height="9"
-                                                                          Stretch="Uniform" />
-                                                                </Button>
-                                                                <Button Style="{StaticResource NotchIconButtonStyle}"
-                                                                        Command="{Binding DeleteCommand}"
-                                                                        ToolTip="Delete Profile"
-                                                                        Padding="2">
-                                                                    <Path Data="{StaticResource IconDeleteGeometry}"
-                                                                          Fill="{StaticResource TextMutedBrush}"
-                                                                          Width="9"
-                                                                          Height="9"
-                                                                          Stretch="Uniform" />
-                                                                </Button>
-                                                            </StackPanel>
-                                                        </Grid>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
+                                        <!-- 4-step Volume Level Visualizer Bars -->
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="2.5" Height="4" CornerRadius="1" Margin="1,0"
+                                                    Background="{StaticResource TextPrimaryBrush}" />
+                                            <Border Width="2.5" Height="7" CornerRadius="1" Margin="1,0">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#333342" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding VolumeLevelStep, Converter={StaticResource EqualityToVisibility}, ConverterParameter=2}" Value="Visible">
+                                                                <Setter Property="Background" Value="{StaticResource TextPrimaryBrush}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding VolumeLevelStep, Converter={StaticResource EqualityToVisibility}, ConverterParameter=3}" Value="Visible">
+                                                                <Setter Property="Background" Value="{StaticResource TextPrimaryBrush}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding VolumeLevelStep, Converter={StaticResource EqualityToVisibility}, ConverterParameter=4}" Value="Visible">
+                                                                <Setter Property="Background" Value="{StaticResource TextPrimaryBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+                                            <Border Width="2.5" Height="10" CornerRadius="1" Margin="1,0">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#333342" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding VolumeLevelStep, Converter={StaticResource EqualityToVisibility}, ConverterParameter=3}" Value="Visible">
+                                                                <Setter Property="Background" Value="{StaticResource TextPrimaryBrush}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding VolumeLevelStep, Converter={StaticResource EqualityToVisibility}, ConverterParameter=4}" Value="Visible">
+                                                                <Setter Property="Background" Value="{StaticResource TextPrimaryBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+                                            <Border Width="2.5" Height="13" CornerRadius="1" Margin="1,0">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#333342" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding VolumeLevelStep, Converter={StaticResource EqualityToVisibility}, ConverterParameter=4}" Value="Visible">
+                                                                <Setter Property="Background" Value="{StaticResource TextPrimaryBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
                             </Grid>
+                        </Border>
 
-                            <!-- VIEW 2: Agent Profile Editor Modal/Card -->
-                            <Border Visibility="{Binding IsEditingAgent, Converter={StaticResource BoolToVisibility}}"
-                                    Background="{StaticResource NotchCardBackgroundDarkBrush}"
-                                    BorderBrush="{StaticResource NotchBorderDarkBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="12"
-                                    Padding="14,10">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
+                        <!-- ============================================================== -->
+                        <!-- [VIEW 3] SETTINGS & LIVE PREVIEW CUSTOMIZATION                 -->
+                        <!-- ============================================================== -->
+                        <Border Visibility="{Binding ActiveView, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Settings'}"
+                                Background="{StaticResource NotchCardBackgroundDarkBrush}"
+                                BorderBrush="{StaticResource NotchSubtleBorderDarkBrush}"
+                                BorderThickness="1"
+                                CornerRadius="14"
+                                Padding="14,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <!-- Left Column: Controls (Width, Height, Position) -->
+                                    <ColumnDefinition Width="1.4*" />
+                                    <ColumnDefinition Width="14" />
+                                    <!-- Right Column: Live Monitor Display Simulation Preview -->
+                                    <ColumnDefinition Width="1.2*" />
+                                </Grid.ColumnDefinitions>
 
-                                    <!-- Editor Header -->
-                                    <TextBlock Grid.Row="0"
-                                               Text="{Binding EditorTitle}"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                               FontSize="12"
-                                               FontWeight="SemiBold"
-                                               Margin="0,0,0,8" />
-
-                                    <!-- Name Field -->
-                                    <Grid Grid.Row="1" Margin="0,0,0,6">
+                                <!-- Left Column: Sliders and Segmented Toggles -->
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <!-- Collapsed Width Slider -->
+                                    <Grid Margin="0,0,0,6">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="60" />
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0"
-                                                   Text="Name:"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                        <TextBlock Grid.Column="0" Text="Width:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <Slider Grid.Column="1"
+                                                Style="{StaticResource NotchSliderStyle}"
+                                                Minimum="180"
+                                                Maximum="450"
+                                                SmallChange="5"
+                                                LargeChange="20"
+                                                Value="{Binding PendingCollapsedWidth, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding PendingCollapsedWidth, Converter={StaticResource DoubleToPx}}"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
                                                    FontSize="10"
-                                                   VerticalAlignment="Center" />
-                                        <TextBox Grid.Column="1"
-                                                 Style="{StaticResource NotchTextBoxStyle}"
-                                                 Text="{Binding EditorAgentName, UpdateSourceTrigger=PropertyChanged}" />
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   Margin="8,0,0,0"
+                                                   Width="46"
+                                                   TextAlignment="Right" />
                                     </Grid>
 
-                                    <!-- Description Field -->
-                                    <Grid Grid.Row="2" Margin="0,0,0,8">
+                                    <!-- Collapsed Height Slider -->
+                                    <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="60" />
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0"
-                                                   Text="Task Goal:"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                        <TextBlock Grid.Column="0" Text="Height:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <Slider Grid.Column="1"
+                                                Style="{StaticResource NotchSliderStyle}"
+                                                Minimum="28"
+                                                Maximum="52"
+                                                SmallChange="2"
+                                                LargeChange="4"
+                                                Value="{Binding PendingCollapsedHeight, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding PendingCollapsedHeight, Converter={StaticResource DoubleToPx}}"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
                                                    FontSize="10"
-                                                   VerticalAlignment="Center" />
-                                        <TextBox Grid.Column="1"
-                                                 Style="{StaticResource NotchTextBoxStyle}"
-                                                 Text="{Binding EditorAgentDescription, UpdateSourceTrigger=PropertyChanged}" />
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   Margin="8,0,0,0"
+                                                   Width="46"
+                                                   TextAlignment="Right" />
                                     </Grid>
 
-                                    <!-- Action Buttons -->
-                                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <!-- Horizontal Position Segmented Buttons -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                        <TextBlock Text="Position:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <Button Style="{StaticResource NotchSegmentedButtonStyle}"
+                                                Content="Left"
+                                                Command="{Binding SetPendingPositionCommand}"
+                                                CommandParameter="Left"
+                                                Tag="{Binding PendingHorizontalPosition, Converter={StaticResource PositionToTag}, ConverterParameter='Left'}"
+                                                Margin="0,0,4,0" />
+                                        <Button Style="{StaticResource NotchSegmentedButtonStyle}"
+                                                Content="Center"
+                                                Command="{Binding SetPendingPositionCommand}"
+                                                CommandParameter="Center"
+                                                Tag="{Binding PendingHorizontalPosition, Converter={StaticResource PositionToTag}, ConverterParameter='Center'}"
+                                                Margin="0,0,4,0" />
+                                        <Button Style="{StaticResource NotchSegmentedButtonStyle}"
+                                                Content="Right"
+                                                Command="{Binding SetPendingPositionCommand}"
+                                                CommandParameter="Right"
+                                                Tag="{Binding PendingHorizontalPosition, Converter={StaticResource PositionToTag}, ConverterParameter='Right'}"
+                                                Margin="0,0,4,0" />
+                                        <Button Style="{StaticResource NotchSegmentedButtonStyle}"
+                                                Content="Custom"
+                                                Command="{Binding SetPendingPositionCommand}"
+                                                CommandParameter="Custom"
+                                                Tag="{Binding PendingHorizontalPosition, Converter={StaticResource PositionToTag}, ConverterParameter='Custom'}" />
+                                    </StackPanel>
+
+                                    <!-- Custom Horizontal Offset Slider (Visible when Position is Custom) -->
+                                    <Grid Margin="0,0,0,8"
+                                          Visibility="{Binding PendingHorizontalPosition, Converter={StaticResource EqualityToVisibility}, ConverterParameter='Custom'}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Offset:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <Slider Grid.Column="1"
+                                                Style="{StaticResource NotchSliderStyle}"
+                                                Minimum="-400"
+                                                Maximum="400"
+                                                Value="{Binding PendingHorizontalOffset, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding PendingHorizontalOffset, Converter={StaticResource DoubleToPx}}"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontSize="10"
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center"
+                                                   Margin="8,0,0,0"
+                                                   Width="46"
+                                                   TextAlignment="Right" />
+                                    </Grid>
+
+                                    <!-- Action Buttons: Apply, Cancel, Reset -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <!-- Apply Button (Commits settings to live notch & saves to JSON) -->
+                                        <Button Style="{StaticResource NotchAccentButtonStyle}"
+                                                Command="{Binding ApplySettingsCommand}"
+                                                ToolTip="Apply changes to live notch"
+                                                Margin="0,0,6,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource IconCheckGeometry}" Fill="White" Width="9" Height="9" Stretch="Uniform" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                                <TextBlock Text="Apply" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+
+                                        <!-- Cancel Button -->
                                         <Button Style="{StaticResource NotchGhostButtonStyle}"
-                                                Command="{Binding CancelAgentEditCommand}"
+                                                Command="{Binding CancelSettingsCommand}"
+                                                ToolTip="Discard unapplied changes"
                                                 Margin="0,0,6,0">
                                             <TextBlock Text="Cancel" />
                                         </Button>
-                                        <Button Style="{StaticResource NotchAccentButtonStyle}"
-                                                Command="{Binding SaveAgentProfileCommand}">
+
+                                        <!-- Reset Defaults -->
+                                        <Button Style="{StaticResource NotchGhostButtonStyle}"
+                                                Command="{Binding ResetSettingsDefaultsCommand}"
+                                                ToolTip="Reset to defaults">
                                             <StackPanel Orientation="Horizontal">
-                                                <Path Data="{StaticResource IconCheckGeometry}"
-                                                      Fill="White"
-                                                      Width="9"
-                                                      Height="9"
-                                                      Stretch="Uniform"
-                                                      Margin="0,0,4,0"
-                                                      VerticalAlignment="Center" />
-                                                <TextBlock Text="Save Agent" VerticalAlignment="Center" />
+                                                <Path Data="{StaticResource IconResetGeometry}" Fill="{StaticResource TextMutedBrush}" Width="9" Height="9" Stretch="Uniform" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                                <TextBlock Text="Reset" />
                                             </StackPanel>
                                         </Button>
                                     </StackPanel>
-                                </Grid>
-                            </Border>
-                        </Grid>
+                                </StackPanel>
+
+                                <!-- Right Column: Live Monitor Display Simulation Preview Frame -->
+                                <Border Grid.Column="2"
+                                        Background="#09090D"
+                                        BorderBrush="{StaticResource NotchBorderDarkBrush}"
+                                        BorderThickness="1.5"
+                                        CornerRadius="10"
+                                        Height="96"
+                                        VerticalAlignment="Center"
+                                        ClipToBounds="True">
+                                    <Grid>
+                                        <!-- Monitor Header Bezel Bar -->
+                                        <Border Height="3" Background="#1C1C26" VerticalAlignment="Top" />
+
+                                        <!-- Live Preview Notch (Preserves exact silhouette, flare & position) -->
+                                        <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Top" Height="40">
+                                            <Grid Canvas.Left="{Binding PreviewMarginLeft}"
+                                                  Canvas.Top="0"
+                                                  Width="{Binding PreviewWidth}"
+                                                  Height="{Binding PreviewHeight}">
+                                                <!-- Pure Black Flared Notch Shape -->
+                                                <Path Data="{Binding PreviewGeometry}"
+                                                      Fill="#000000"
+                                                      HorizontalAlignment="Stretch"
+                                                      VerticalAlignment="Stretch" />
+
+                                                <!-- Mini preview volume indicator -->
+                                                <Grid Margin="8,0">
+                                                    <Path Data="{StaticResource IconVolumeGeometry}"
+                                                          Fill="White"
+                                                          Width="6"
+                                                          Height="6"
+                                                          Stretch="Uniform"
+                                                          HorizontalAlignment="Left"
+                                                          VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding VolumeText}"
+                                                               Foreground="White"
+                                                               FontSize="6"
+                                                               FontWeight="SemiBold"
+                                                               HorizontalAlignment="Right"
+                                                               VerticalAlignment="Center" />
+                                                </Grid>
+                                            </Grid>
+                                        </Canvas>
+
+                                        <!-- Preview Label -->
+                                        <TextBlock Text="Live Display Preview"
+                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                   FontSize="8"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Bottom"
+                                                   Margin="0,0,0,6" />
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Border>
 
                     </Grid>
-
-                    <!-- Bottom Carousel Pagination Indicator Dots -->
-                    <StackPanel Grid.Row="2"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Margin="0,0,0,4">
-                        <Ellipse Width="4" Height="4" Fill="{StaticResource TextMutedBrush}" Margin="2,0" />
-                        <Border Width="12" Height="3" CornerRadius="1.5" Background="{StaticResource TextSecondaryBrush}" Margin="2,0" />
-                        <Ellipse Width="4" Height="4" Fill="{StaticResource TextMutedBrush}" Margin="2,0" />
-                        <Ellipse Width="4" Height="4" Fill="{StaticResource TextMutedBrush}" Margin="2,0" />
-                        <Ellipse Width="4" Height="4" Fill="{StaticResource TextMutedBrush}" Margin="2,0" />
-                    </StackPanel>
                 </Grid>
 
             </Grid>

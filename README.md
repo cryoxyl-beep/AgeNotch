@@ -8,11 +8,11 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2011%20x64-0078D4?logo=windows11&logoColor=white)](https://www.microsoft.com/windows)
 [![C#](https://img.shields.io/badge/Language-C%23%2013-239120?logo=csharp&logoColor=white)](https://docs.microsoft.com/dotnet/csharp/)
 [![UI Framework](https://img.shields.io/badge/UI-WPF%20%2F%20XAML-0078D7)](https://learn.microsoft.com/dotnet/desktop/wpf/)
-[![Tests](https://img.shields.io/badge/Tests-42%2F42%20Passing-brightgreen?logo=github-actions)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-47%2F47%20Passing-brightgreen?logo=github-actions)](tests/)
 [![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20MVVM-blueviolet)](#architecture)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-*A sleek, top-anchored desktop notch for Windows 11 featuring organic bezel transitions, zero-polling live hardware monitoring, Windows Media Session controls, contextual status HUD pills, and a modular AI agent workspace.*
+*A sleek, top-anchored desktop notch for Windows 11 featuring organic bezel transitions, customizable dimensions and screen placement with real-time preview, zero-polling live hardware monitoring, Now Playing Music Control Center, contextual status HUD pills, and a modular AI agent workspace.*
 
 ---
 
@@ -24,14 +24,16 @@
 
 ## ✨ Key Features
 
-- **🖤 Organic Flared Silhouette**:
-  Custom procedural geometry (`NotchGeometryBuilder`) smoothly flares into the top display bezel with large rounded bottom corners (16–22px), creating a seamless physical-to-digital transition.
+- **🖤 Organic Flared Silhouette & Customizable Dimensions**:
+  Custom procedural geometry (`NotchGeometryBuilder`) smoothly flares into the top display bezel with large rounded bottom corners (16–24px). Users can customize collapsed width (180–450px), height (28–56px), and screen placement (Center, Left, Right, or Custom Offset) with an interactive real-time monitor display simulation preview.
+- **🎵 Music Control Center & Live GSMTC Integration**:
+  Clicking the Now Playing card in the Nook opens a dedicated full-width Control Center with real-time GSMTC timeline tracking (elapsed and remaining time), seekable progress bar, dynamic equalizer visualizer wave, volume percentage, and source app branding badges (Apple Music, Spotify, Browser, etc.).
+- **📅 Redesigned Nook Dashboard**:
+  Three perfectly balanced cards: Now Playing card with source app badge, a 7-day horizontal calendar strip with a prominent active-today highlight capsule, and a clean profile avatar card.
 - **⚡ Zero-Polling Windows Core Audio**:
   Real-time event-driven volume and mute synchronization via native COM interfaces (`IMMDeviceEnumerator`, `IAudioEndpointVolumeCallback`). Re-binds dynamically when audio endpoints (headphones, speakers) change without polling or CPU overhead.
 - **☀️ Hardware Display Brightness**:
   Direct WMI hardware integration (`root\wmi` `WmiMonitorBrightnessEvent`) for instant screen brightness tracking, with graceful fallback on unsupported external monitors.
-- **🎵 Live Media Player (GSMTC)**:
-  Full Windows Media Session integration (`Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager`) with real-time track metadata, album artwork, and bi-directional playback controls (Play, Pause, Skip, Previous).
 - **💊 Contextual Dynamic Island HUD Pill**:
   Hardware volume or brightness adjustments trigger a smooth, organic temporary HUD pill that settles back into the notch after 2 seconds.
 - **🤖 Modular AI Agents Workspace**:
@@ -39,7 +41,7 @@
 - **🛡️ Focus-Safe Desktop Behavior (`WS_EX_NOACTIVATE`)**:
   Engineered with native Win32 extended window styles (`WS_EX_NOACTIVATE`, `WS_EX_TOOLWINDOW`, `MA_NOACTIVATE`). Interacting with the notch never steals keyboard or window focus from your active apps, games, or IDEs.
 - **📐 High-DPI & Multi-Monitor Aware**:
-  Listens to `WM_DPICHANGED` and monitor topology events via `DisplayManager`, automatically centering at `Y = 0` across dynamic resolution or scale factor shifts.
+  Listens to `WM_DPICHANGED` and monitor topology events via `DisplayManager`, automatically centering or positioning at `Y = 0` across dynamic resolution or scale factor shifts.
 - **🚀 Single-Instance & System Tray**:
   Guarded by a native OS Mutex with custom tray icon controls for quick toggling, pinning, and clean exit.
 

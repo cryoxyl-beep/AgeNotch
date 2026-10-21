@@ -54,9 +54,15 @@ public partial class NotchWindow : Window
 
         DataContext = _viewModel;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _viewModel.BoundsOrPositionConfigurationChanged += OnBoundsOrPositionConfigurationChanged;
         _displayManager.DisplayConfigurationChanged += OnDisplayConfigurationChanged;
 
         Loaded += OnWindowLoaded;
+    }
+
+    private void OnBoundsOrPositionConfigurationChanged(object? sender, EventArgs e)
+    {
+        Dispatcher.InvokeAsync(() => UpdateWindowBoundsAndPosition(_viewModel.IsExpanded, animated: false));
     }
 
     private static void OnTransitionProgressPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -250,7 +256,7 @@ public partial class NotchWindow : Window
 
             double winWidth = isExpanded ? targetWindowWidth : compactWindowWidth;
             double winHeight = isExpanded ? targetWindowHeight : compactWindowHeight;
-            SetWindowHostBounds(winWidth, winHeight, screenWidth);
+            SetWindowHostBounds(winWidth, winHeight);
 
             _logger.LogInformation("UpdateWindowBoundsAndPosition (Snap): isExpanded={IsExpanded}, Window=({Left},{Top},{Width},{Height})",
                 isExpanded, Left, Top, Width, Height);
@@ -262,7 +268,7 @@ public partial class NotchWindow : Window
         if (isExpanded)
         {
             // Immediately expand host window canvas so opening animation never clips
-            SetWindowHostBounds(targetWindowWidth, targetWindowHeight, screenWidth);
+            SetWindowHostBounds(targetWindowWidth, targetWindowHeight);
 
             var expandAnim = new DoubleAnimation
             {
@@ -295,7 +301,7 @@ public partial class NotchWindow : Window
                 // safely shrink host window bounds back to compact size
                 if (!_viewModel.IsExpanded && TransitionProgress <= 0.05)
                 {
-                    SetWindowHostBounds(compactWindowWidth, compactWindowHeight, screenWidth);
+                    SetWindowHostBounds(compactWindowWidth, compactWindowHeight);
                 }
             };
 
@@ -303,11 +309,18 @@ public partial class NotchWindow : Window
         }
     }
 
-    private void SetWindowHostBounds(double width, double height, double screenWidth)
+    private void SetWindowHostBounds(double width, double height)
     {
         Width = width;
         Height = height;
-        Left = Math.Max(0.0, (screenWidth - width) / 2.0);
+
+        double targetNotchWidth = _viewModel.IsExpanded ? _viewModel.ExpandedWidth : _viewModel.CollapsedWidth;
+        double notchLeft = _displayManager.CalculateLeft(targetNotchWidth, _viewModel.HorizontalPosition, _viewModel.HorizontalOffset);
+
+        // NotchContainer is centered in the host window, so window Left is notchLeft - (width - targetNotchWidth) / 2
+        double windowLeft = notchLeft - ((width - targetNotchWidth) / 2.0);
+        double maxLeft = Math.Max(0.0, _displayManager.PrimaryScreenWidthDips - width);
+        Left = Math.Clamp(windowLeft, 0.0, maxLeft);
         Top = 0.0;
     }
 
@@ -326,6 +339,7 @@ public partial class NotchWindow : Window
         base.OnClosed(e);
 
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _viewModel.BoundsOrPositionConfigurationChanged -= OnBoundsOrPositionConfigurationChanged;
         _displayManager.DisplayConfigurationChanged -= OnDisplayConfigurationChanged;
         _hwndSource?.RemoveHook(WndProc);
     }

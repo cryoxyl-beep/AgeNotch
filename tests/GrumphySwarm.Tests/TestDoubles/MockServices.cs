@@ -98,6 +98,16 @@ public sealed class MockMediaSessionService : IMediaSessionService
         return Task.FromResult(true);
     }
 
+    public bool SeekInvoked { get; private set; }
+    public TimeSpan LastSeekPosition { get; private set; }
+
+    public Task<bool> TrySeekAsync(TimeSpan position)
+    {
+        SeekInvoked = true;
+        LastSeekPosition = position;
+        return Task.FromResult(true);
+    }
+
     public void Dispose()
     {
         IsDisposed = true;

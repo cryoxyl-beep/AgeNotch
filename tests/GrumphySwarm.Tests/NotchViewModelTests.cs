@@ -147,4 +147,109 @@ public class NotchViewModelTests
         vm.CancelAgentEditCommand.Execute(null);
         Assert.False(vm.IsEditingAgent);
     }
+
+    [Fact]
+    public void NavigateToNowPlayingCenter_AndReturnToDashboard()
+    {
+        var stateMachine = new NotchStateMachine();
+        var settingsService = new DummySettingsService();
+        using var vm = new NotchViewModel(stateMachine, settingsService, clock: new MockClock());
+
+        Assert.Equal("Dashboard", vm.ActiveView);
+
+        vm.OpenNowPlayingCenterCommand.Execute(null);
+        Assert.Equal("NowPlayingCenter", vm.ActiveView);
+
+        vm.CloseNowPlayingCenterCommand.Execute(null);
+        Assert.Equal("Dashboard", vm.ActiveView);
+    }
+
+    [Fact]
+    public async Task Settings_OpenPreviewUpdateAndApply_UpdatesSettingsAndRaisesEvent()
+    {
+        var stateMachine = new NotchStateMachine();
+        var settingsService = new DummySettingsService();
+        using var vm = new NotchViewModel(stateMachine, settingsService, clock: new MockClock());
+
+        bool eventRaised = false;
+        vm.BoundsOrPositionConfigurationChanged += (_, _) => eventRaised = true;
+
+        vm.OpenSettingsCommand.Execute(null);
+        Assert.Equal("Settings", vm.ActiveView);
+
+        // Adjust dimensions and horizontal position
+        vm.PendingCollapsedWidth = 320;
+        vm.PendingCollapsedHeight = 42;
+        vm.SetPendingPositionCommand.Execute("Right");
+        vm.PendingHorizontalOffset = 10;
+        vm.UpdateSettingsPreview();
+
+        Assert.NotNull(vm.PreviewGeometry);
+        Assert.True(vm.PreviewWidth > 0);
+
+        // Apply
+        await vm.ApplySettingsAsync();
+
+        Assert.True(eventRaised);
+        Assert.Equal("Dashboard", vm.ActiveView);
+        Assert.Equal(320, vm.CollapsedWidth);
+        Assert.Equal(42, vm.CollapsedHeight);
+        Assert.Equal(NotchHorizontalPosition.Right, vm.HorizontalPosition);
+    }
+
+    [Fact]
+    public void Settings_Cancel_DiscardsPendingChanges()
+    {
+        var stateMachine = new NotchStateMachine();
+        var settingsService = new DummySettingsService();
+        using var vm = new NotchViewModel(stateMachine, settingsService, clock: new MockClock());
+
+        vm.OpenSettingsCommand.Execute(null);
+        vm.PendingCollapsedWidth = 400;
+
+        vm.CancelSettingsCommand.Execute(null);
+        Assert.Equal("Dashboard", vm.ActiveView);
+        Assert.Equal(250, vm.CollapsedWidth); // Restored from current
+    }
+
+    [Fact]
+    public void Settings_ResetDefaults_RestoresDefaultPreview()
+    {
+        var stateMachine = new NotchStateMachine();
+        var settingsService = new DummySettingsService();
+        using var vm = new NotchViewModel(stateMachine, settingsService, clock: new MockClock());
+
+        vm.OpenSettingsCommand.Execute(null);
+        vm.PendingCollapsedWidth = 380;
+        vm.SetPendingPositionCommand.Execute("Left");
+
+        vm.ResetSettingsDefaultsCommand.Execute(null);
+        Assert.Equal(250, vm.PendingCollapsedWidth);
+        Assert.Equal(36, vm.PendingCollapsedHeight);
+        Assert.Equal(NotchHorizontalPosition.Center, vm.PendingHorizontalPosition);
+    }
+
+    [Fact]
+    public void DisplayManager_CalculateLeft_HandlesAllPositionsAndClamps()
+    {
+        using var displayManager = new GrumphySwarm.Interop.DisplayManager();
+        double screenW = displayManager.PrimaryScreenWidthDips;
+        double targetW = 250.0;
+
+        // Center
+        double centerLeft = displayManager.CalculateLeft(targetW, NotchHorizontalPosition.Center, 0.0);
+        Assert.Equal((screenW - targetW) / 2.0, centerLeft);
+
+        // Left
+        double leftPos = displayManager.CalculateLeft(targetW, NotchHorizontalPosition.Left, 0.0);
+        Assert.Equal(24.0, leftPos);
+
+        // Right
+        double rightPos = displayManager.CalculateLeft(targetW, NotchHorizontalPosition.Right, 0.0);
+        Assert.Equal(Math.Max(0.0, screenW - targetW - 24.0), rightPos);
+
+        // Custom with large offset that clamps to screen edge
+        double clamped = displayManager.CalculateLeft(targetW, NotchHorizontalPosition.Center, 99999.0);
+        Assert.Equal(screenW - targetW, clamped);
+    }
 }

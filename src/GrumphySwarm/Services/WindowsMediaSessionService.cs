@@ -19,6 +19,7 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
     private GlobalSystemMediaTransportControlsSessionManager? _sessionManager;
     private GlobalSystemMediaTransportControlsSession? _currentSession;
     private MediaTrackInfo _currentTrack = MediaTrackInfo.Empty;
+    private Timer? _playbackProgressTimer;
     private bool _disposed;
 
     public event EventHandler<MediaTrackInfo>? MediaTrackChanged;
@@ -39,6 +40,9 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
     {
         _logger = logger ?? NullLogger<WindowsMediaSessionService>.Instance;
         _ = InitializeSessionManagerAsync();
+
+        // 1-second progress advancement timer for smooth timeline updates during active playback
+        _playbackProgressTimer = new Timer(OnProgressTimerTick, null, 1000, 1000);
     }
 
     private async Task InitializeSessionManagerAsync()
@@ -96,6 +100,7 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
                 {
                     _currentSession.MediaPropertiesChanged -= OnMediaPropertiesChanged;
                     _currentSession.PlaybackInfoChanged -= OnPlaybackInfoChanged;
+                    _currentSession.TimelinePropertiesChanged -= OnTimelinePropertiesChanged;
                 }
 
                 _currentSession = newSession;
@@ -104,6 +109,7 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
                 {
                     _currentSession.MediaPropertiesChanged += OnMediaPropertiesChanged;
                     _currentSession.PlaybackInfoChanged += OnPlaybackInfoChanged;
+                    _currentSession.TimelinePropertiesChanged += OnTimelinePropertiesChanged;
                 }
             }
 
@@ -121,6 +127,11 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
     }
 
     private void OnPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
+    {
+        _ = RefreshMediaPropertiesAsync();
+    }
+
+    private void OnTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args)
     {
         _ = RefreshMediaPropertiesAsync();
     }
@@ -154,22 +165,55 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
                 _logger.LogDebug(ex, "TryGetMediaPropertiesAsync failed or session closed.");
             }
 
+            // Map source application identifier
+            var (sourceAppName, sourceAppBadgeKey) = ResolveSourceAppInfo(session.SourceAppUserModelId);
+
             if (mediaProperties == null || (string.IsNullOrWhiteSpace(mediaProperties.Title) && string.IsNullOrWhiteSpace(mediaProperties.Artist)))
             {
                 SetCurrentTrack(new MediaTrackInfo
                 {
                     HasMedia = false,
                     Title = "No active track",
-                    Artist = session.SourceAppUserModelId ?? "Media paused",
+                    Artist = sourceAppName,
                     Album = string.Empty,
                     SourceAppId = session.SourceAppUserModelId ?? string.Empty,
+                    SourceAppName = sourceAppName,
+                    SourceAppBadgeKey = sourceAppBadgeKey,
                     IsPlaying = isPlaying,
                     CanPlayPause = controls?.IsPlayEnabled == true || controls?.IsPauseEnabled == true || controls?.IsPlayPauseToggleEnabled == true,
                     CanSkipNext = controls?.IsNextEnabled == true,
                     CanSkipPrevious = controls?.IsPreviousEnabled == true,
+                    HasTimeline = false,
                     ThumbnailBytes = null
                 });
                 return;
+            }
+
+            // Timeline extraction
+            bool hasTimeline = false;
+            TimeSpan position = TimeSpan.Zero;
+            TimeSpan duration = TimeSpan.Zero;
+            string posText = "--:--";
+            string remText = "--:--";
+            double progress = 0.0;
+
+            try
+            {
+                var timeline = session.GetTimelineProperties();
+                if (timeline != null && timeline.EndTime > TimeSpan.Zero)
+                {
+                    hasTimeline = true;
+                    position = timeline.Position;
+                    duration = timeline.EndTime;
+                    posText = FormatTimeSpan(position);
+                    var remaining = duration > position ? duration - position : TimeSpan.Zero;
+                    remText = "-" + FormatTimeSpan(remaining);
+                    progress = Math.Clamp(position.TotalSeconds / Math.Max(1.0, duration.TotalSeconds), 0.0, 1.0);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Could not acquire timeline properties.");
             }
 
             byte[]? thumbBytes = null;
@@ -199,20 +243,118 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
                 Artist = string.IsNullOrWhiteSpace(mediaProperties.Artist) ? "Unknown Artist" : mediaProperties.Artist,
                 Album = mediaProperties.AlbumTitle ?? string.Empty,
                 SourceAppId = session.SourceAppUserModelId ?? string.Empty,
+                SourceAppName = sourceAppName,
+                SourceAppBadgeKey = sourceAppBadgeKey,
                 IsPlaying = isPlaying,
                 CanPlayPause = controls?.IsPlayEnabled == true || controls?.IsPauseEnabled == true || controls?.IsPlayPauseToggleEnabled == true,
                 CanSkipNext = controls?.IsNextEnabled == true,
                 CanSkipPrevious = controls?.IsPreviousEnabled == true,
+                HasTimeline = hasTimeline,
+                Position = position,
+                Duration = duration,
+                PositionText = posText,
+                RemainingText = remText,
+                Progress = progress,
                 ThumbnailBytes = thumbBytes
             };
 
             SetCurrentTrack(trackInfo);
-            _logger.LogDebug("GSMTC Track updated: '{Title}' by '{Artist}', Playing={IsPlaying}", trackInfo.Title, trackInfo.Artist, trackInfo.IsPlaying);
+            _logger.LogDebug("GSMTC Track updated: '{Title}' by '{Artist}' ({App}), Playing={IsPlaying}, Time={Pos}/{Dur}",
+                trackInfo.Title, trackInfo.Artist, trackInfo.SourceAppName, trackInfo.IsPlaying, trackInfo.PositionText, trackInfo.Duration);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception while refreshing media properties.");
         }
+    }
+
+    private void OnProgressTimerTick(object? state)
+    {
+        if (_disposed) return;
+
+        MediaTrackInfo current;
+        lock (_lock) current = _currentTrack;
+
+        if (current.HasMedia && current.IsPlaying && current.HasTimeline && current.Duration > TimeSpan.Zero)
+        {
+            var nextPos = current.Position + TimeSpan.FromSeconds(1);
+            if (nextPos > current.Duration) nextPos = current.Duration;
+
+            var remaining = current.Duration > nextPos ? current.Duration - nextPos : TimeSpan.Zero;
+            double progress = Math.Clamp(nextPos.TotalSeconds / Math.Max(1.0, current.Duration.TotalSeconds), 0.0, 1.0);
+
+            var updated = new MediaTrackInfo
+            {
+                HasMedia = current.HasMedia,
+                Title = current.Title,
+                Artist = current.Artist,
+                Album = current.Album,
+                SourceAppId = current.SourceAppId,
+                SourceAppName = current.SourceAppName,
+                SourceAppBadgeKey = current.SourceAppBadgeKey,
+                IsPlaying = current.IsPlaying,
+                CanPlayPause = current.CanPlayPause,
+                CanSkipNext = current.CanSkipNext,
+                CanSkipPrevious = current.CanSkipPrevious,
+                HasTimeline = true,
+                Position = nextPos,
+                Duration = current.Duration,
+                PositionText = FormatTimeSpan(nextPos),
+                RemainingText = "-" + FormatTimeSpan(remaining),
+                Progress = progress,
+                ThumbnailBytes = current.ThumbnailBytes
+            };
+
+            SetCurrentTrack(updated);
+        }
+    }
+
+    private static (string Name, string BadgeKey) ResolveSourceAppInfo(string? appId)
+    {
+        if (string.IsNullOrWhiteSpace(appId))
+        {
+            return ("Media Player", "IconGenericMusicBadge");
+        }
+
+        var lower = appId.ToLowerInvariant();
+        if (lower.Contains("spotify"))
+        {
+            return ("Spotify", "IconSpotifyBadge");
+        }
+        if (lower.Contains("apple") || lower.Contains("itunes"))
+        {
+            return ("Apple Music", "IconAppleMusicBadge");
+        }
+        if (lower.Contains("chrome"))
+        {
+            return ("Google Chrome", "IconBrowserBadge");
+        }
+        if (lower.Contains("edge"))
+        {
+            return ("Microsoft Edge", "IconBrowserBadge");
+        }
+        if (lower.Contains("firefox"))
+        {
+            return ("Firefox", "IconBrowserBadge");
+        }
+
+        var clean = appId.Replace(".exe", "", StringComparison.OrdinalIgnoreCase);
+        int bang = clean.IndexOf('!');
+        if (bang >= 0 && bang < clean.Length - 1)
+        {
+            clean = clean[(bang + 1)..];
+        }
+
+        return (clean, "IconGenericMusicBadge");
+    }
+
+    private static string FormatTimeSpan(TimeSpan ts)
+    {
+        if (ts.TotalHours >= 1)
+        {
+            return $"{(int)ts.TotalHours}:{ts.Minutes:D2}:{ts.Seconds:D2}";
+        }
+        return $"{ts.Minutes}:{ts.Seconds:D2}";
     }
 
     private void SetCurrentTrack(MediaTrackInfo track)
@@ -275,10 +417,31 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
         return false;
     }
 
+    public async Task<bool> TrySeekAsync(TimeSpan position)
+    {
+        try
+        {
+            GlobalSystemMediaTransportControlsSession? session;
+            lock (_lock) session = _currentSession;
+            if (session != null)
+            {
+                return await session.TryChangePlaybackPositionAsync(position.Ticks);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "TrySeekAsync failed.");
+        }
+        return false;
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
+
+        _playbackProgressTimer?.Dispose();
+        _playbackProgressTimer = null;
 
         lock (_lock)
         {
@@ -286,6 +449,7 @@ public sealed class WindowsMediaSessionService : IMediaSessionService
             {
                 _currentSession.MediaPropertiesChanged -= OnMediaPropertiesChanged;
                 _currentSession.PlaybackInfoChanged -= OnPlaybackInfoChanged;
+                _currentSession.TimelinePropertiesChanged -= OnTimelinePropertiesChanged;
                 _currentSession = null;
             }
 

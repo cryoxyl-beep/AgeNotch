@@ -114,3 +114,35 @@ public sealed class ProgressToWidthConverter : IMultiValueConverter
         throw new NotSupportedException();
     }
 }
+
+public sealed class PositionToTagConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        string? currentPos = value?.ToString();
+        string? buttonPos = parameter?.ToString();
+        return string.Equals(currentPos, buttonPos, StringComparison.OrdinalIgnoreCase) ? "Selected" : "";
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
+    }
+}
+
+public sealed class DoubleToPxConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is double d)
+        {
+            return $"{Math.Round(d)} px";
+        }
+        return "0 px";
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotSupportedException();
+    }
+}
